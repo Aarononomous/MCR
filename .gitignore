@@ -1,0 +1,10 @@
+.DS_Store
+*.*~
+
+# Python
+.ipynb_checkpoints
+__pycache__
+
+# Illustrator
+*.ai
+*.pdf

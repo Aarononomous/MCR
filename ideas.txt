@@ -1,0 +1,56 @@
+Possible Heuristics
+-------------------
+ - Which shape, when removed, reduces the _largest_ number of contiguous free space; i.e., removing it _connects_ free spaces
+ - The shape with the largest area
+ - The shape with the most overlaps
+ - The shapes closest to the start/goal
+ - Can we mark some shapes as necessary to be removed?
+ - What's the quickest way to prune?
+ - If each shape and each overlapping area (annotated with "depth" somehow) is considered as adjacent shapes, we can find a path using a graph algorithm
+ - "The problem becomes trivial when the obstacles are allowed to intersect only pairwise" ??? Remember which shapes intersect only pairwise?
+ - Is there any way to parameterize this? Number of overlaps? Initial number of paths? Average path cost?
+ - bounded by the number of clear spaces that are passed through in a minimal path???
+ - For any two sections in the planar graph, what is the minimum number needed to be removed?
+
+Illustrated Sections
+--------------------
+ - Create a random instance of the problem. Parameters: number of shapes, ???
+ - Convert a 2-D instance to a (labeled) graph. Vice-versa?
+ - Create an instance from a reduction of MAX2HORNSAT -- or create a graph???
+
+Other Approaches
+----------------
+ - What if there's a cost for removing an obstacle which is added to the total length traveled?
+ - If this approach uses Horn clauses, all of the problems can be written in Prolog???
+
+Questions
+---------
+ - Am I going to run into any floating-point troubles
+ - Do I need to worry a lot about C.G. problems like shapes intersecting at a line/point?
+ - What about taking concave shapes and splitting them into convex -- is it useful to illustrate examples or a waste of time?
+ - I'll need one to some notebooks to introduce the problem and the machinery. How do I import these into further notebooks?
+   - http://nbviewer.jupyter.org/gist/minrk/6011986
+   - --script flag?
+   - or use Docco...but this might not allow for LaTeX
+- When the start/goal are within a shape/shapes, would it be best to have a single labeled vertex which connects to the overlap area? Does this affect the order of operations?
+
+
+README
+------
+For my final project, IÃÂd like to work on your suggested Project II: Path Intersection. I’m interested in using this problem to explore a specific case 
+
+I want to use a [Literate Programming](http://literateprogramming.com/knuthweb.pdf) approach to approach and explain the problem. Luckily, there are plenty of new and interesting approaches to this (note that some of them aren't too new at all):
+- [Eve](http://programming.witheve.com), inspired by Bret Victor's [research](https://vimeo.com/71278954), [HyperCard](https://www.youtube.com/watch?v=EMFscTOazS0), and building on [LightTable](http://lighttable.com)
+- [Adventure](http://literateprogramming.com/adventure.pdf)
+- [Marginalia](http://gdeer81.github.io/marginalia/) and other [Docco](http://jashkenas.github.io/docco/)-inspired split-screen code explainers
+    - here's  an example of docco, the [annotated source code](https://robflaherty.github.io/jquery-annotated-source/docs/04-data.html) for jQuery
+- [Jupyter](http://jupyter.org). This is usually used with Python or R, but there are _plenty_ of kernels for other languages
+
+So, my question is: how can I use these tools to
+
+1. Explain the problem clearly
+2. Create and explore (_programmatically_) the problem space, including, e.g., mappings to other paradigms.
+3. Explore potential heuristic algorithms within the problem space. Then, present and explain these algorithms.
+4. 
+
+What I'm really interested in is using programming and the programming environment as a descriptive and exploratory medium. How is 

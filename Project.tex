@@ -1,0 +1,159 @@
+\documentclass{amsart}
+\usepackage{graphicx}
+\usepackage{textcomp}
+
+\begin{document}
+
+{\Large
+
+\title{Minimum Cover Removal Project [[[ Title Here ]]]}
+\author{Aaron Jacobson}
+\date{March 2017}
+\maketitle
+
+\begin{abstract}
+[[ Abstract goes here ]]
+\end{abstract}
+
+\section{Introduction}
+
+Parametrization by ...
+
+\section{Analysis}
+
+\section{Ideas}
+
+\subsection{Analysis}
+
+How does the planarity of the graph affect graph traversal? How can I use this to my advantage?
+
+\subsection{Approximation Algorithms}
+
+One way to approach this is with path traversal. An opposite way is with obstacle removal. Is there a way to blend these? What's a way of measuring the ``goodness'' of obstacle removal?
+
+\textbf{The shapes closest to the start/goal:} The algorithms of Hauser walk through the graph from $s$. A more-interesting approach would be an incremental approach that \emph{doesn't} use BFS. However, this is a good and obvious first approach.
+
+\textbf{Remove/special case for obstacles with only pairwise intersections:} I don't have any proof for this yet.
+
+\textbf{What's the quickest way to prune?}
+
+\textbf{Dynamic Programming Approaches:} [[[ TODO ]]]
+
+Which shape, when removed, reduces the _largest_ number of contiguous _free_ spaces; i.e., removing it _connects_ free spaces? I feel like this won't work well---how to prove that.
+
+\textbf{Ordering obstacles by number of overlaps:} In a graph, this is the number of multi-labeled vertices.
+
+\textbf{Ordering obstacles by total number of vertices:} See above. The difference is unlabeled adjacencies. Would this be better? What about ordering by number of unlabeled adjacencies, then?
+
+\textbf{bounded by the number of clear spaces that are passed through in a minimal path???} I don't feel like this would work. [[[ TODO: Analyze this. ]]]
+
+For any two vertices in the planar graph, what is the minimum number of obstacles needed to be removed to connect them?
+
+\subsection{Parameterizations}
+
+\textbf{Total number of overlaps:}
+
+\textbf{Average number of overlaps:}
+
+\textbf{Initial number of paths:} This is really interesting. How do I measure this?
+
+\textbf{Average path cost:} Again, how do I measure this? I guess since I have to iterate through all paths anyways, I can just count.
+
+\textbf{Number of unique MCR's}
+
+\textbf{Each node is valued by the total cover of its neighborhood:} $f: \mathbb{N} = v \rarrow |\bigcup_{u \in Adj(v)} C(u) |$
+
+\textbf{Repeat Entry Penalization:} If a subsequent entry into obstacle $O$ is penalized with 1, then the problem is in P, since we'll just be finding a path through the fewest obstacles. (Q: How is this affected by re-entry within overlaps?) What about slowly lowering the penalty by $\varepsilon$ for repeat entries? What's a good amount to reduce by? This boils down to path augmentation in the middle, which is interesting.
+
+\textbf{Shortest Path Approx.:} For every obstacle vertex, add an edge of weight *intersections*. What's the shortest path through this?
+
+\subsection{Ideas That Don't Work}
+
+\textbf{Prioritizing Largest Areas:} There's no cost except in entering obstacles for the first time; this is why we can reduce MCR to a discrete problem, and ultimately, to a problem in a graph. Varying an obstacle's size will only affect the runtime if it varies the number of overlaps covered by the obstacle.
+
+\textbf{Can we mark some obstacles as \emph{necessary} to be removed?:} Sure. These are shapes that either a) overlap $s$; b) overlap $t$; or c) overlay the entire field in the x- or y-direction. All three of these conditions can be tested in $O(n) O(1)$. This might remove some low-hanging fruit, but it doesn't affect the overall tractability of the problem.
+
+\textbf{Pairwise Intersection:} "The problem becomes trivial when the obstacles are allowed to intersect only pairwise" [[ Cite ]]
+
+Proof: A conversion from pairwise intersection in the plane to a partition in an induced graph $G$ creates two sorts of labeled vertices: those with one label and those with two. The vertices with two labels $a, b$ can only be connected to vertices labeled $a$ and $b$. Where the obstacles do not intersect at their sides, the induced vertex is the only vertex on the path $(a, b)$, and since proceeding through it can only be done while on a path through both the $a$ and $b$ vertices, we can erase the redundant label and merge edges $(a, (a, b))$ and $((a, b), b)$. On a side-intersection, the MCR path from start to goal will only need to pass through both obstacles if it begins in one; since that will have to be removed anyways, the degenerate case is obviated. After merging edges, we can continue to contract the graph to reach a minor with all vertices labeled---this is now reduced to finding a shortest path in $G$.
+
+
+[[[ Can this be used to remove any obstacles? ]]]
+
+\section{Todo}
+
+~ import SVG's
+
+Shape intersection to new shapes
+    - how will this work exactly?
+    Idea 1. Overlay the shapes one by one on the artboard: add each shape to the graph as it's entered; problem: this will cetainly create convex shapes that I need to check intersection on.
+    Idea 2. Add all shapes as outlines; create new segments from each intersection; add all created shapes to the graph then label them by the original shapes
+    - check for a good algorithm for shape intersection
+    
+graph library
+
+develop the MCR library
+
+add tolerance for point comparisons
+
+shape adjacency to (labeled) graph - partition of the plane
+    - special case where $s$ and $g$ are in the same partition
+
+SVG to shapes
+a. resize to [1, 1]
+b. display as translucent
+b.1. When ordering obstacles by property x, can we color them to show the order?
+
+overlay graph onto shapes
+
+display shapes
+
+develop the optimal algorithm from Hauser
+
+develop the greedy algorithm from Hauser
+
+develop the same random shapes and tests as in Hauser
+
+graph results
+
+display an example of the worst-case $|G| 2^{|S^*|}$ states configuration - for the optimal algorithm
+
+display a worst-case example for the greedy algorithm -- Hauser won't work; his example is a concave shape
+
+find LaValle 2006
+
+find Choset et al. 2005
+
+
+\subsection{For Later}
+
+convert MAX2HORNSAT into an MCR
+
+Am I going to run into any floating-point troubles?
+
+Do I need to worry a lot about C.G. problems like shapes intersecting at a line/point?
+
+What about taking concave shapes and splitting them into convex -- is it useful to illustrate examples or a waste of time?
+
+I'll need one to some notebooks to introduce the problem and the machinery. How do I import these into further notebooks?
+  
+  http://nbviewer.jupyter.org/gist/minrk/6011986
+
+\section{Approach}
+
+\subsection{Mathematical Stuff}
+
+- overlapping shapes to a labelled graph
+
+When the start/goal are within a shape/shapes, would it be best to have a single labeled vertex which connects to the overlap area? Does this affect the order of operations?
+
+Using Jupyter
+
+
+\section{Appendix}
+
+[[ Code here? ]]
+
+\end{document}
+
+
