@@ -28,38 +28,32 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 ### TODO
 
-1. move library to new folder and files
+1. split MCR into files
 
-2. update GitHub
+2. remove space in labels
 
-    * add readme
+1. clip field to [0,1]
 
-3. split MCR into files
+1. add nodes for empty spaces
 
-4. remove space in labels
+1. add graph functions (as stubs)to MCR
 
-5. clip field to [0,1]
+1. display graphs over the image
 
-6. add nodes for empty spaces
+1. implement basic graph-handling
 
-7. add graph functions (as stubs)to MCR
+1. import shape colors from SVG's
 
-8. display graphs over the image
+1. overlap colors?
 
-9. implement basic graph-handling
+1. graph library
 
-10. import shape colors from SVG's
+1.add tolerance for point comparisons
 
-11. overlap colors?
-
-12. graph library
-
-13.add tolerance for point comparisons
-
-14. shape adjacency to (labeled) graph - partition of the plane
+1. shape adjacency to (labeled) graph - partition of the plane
     * special case where $s$ and $g$ are in the same partition
 
-15. When ordering obstacles by property x in some algorithm, can we color them to show the order?
+1. When ordering obstacles by property x in some algorithm, can we color them to show the order?
 
 
 ## Author
