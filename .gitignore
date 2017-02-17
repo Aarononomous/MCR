@@ -8,3 +8,8 @@ __pycache__
 # Illustrator
 *.ai
 *.pdf
+
+# TeX
+*.aux
+*.log
+*.synctex.gz

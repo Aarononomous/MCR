@@ -6,7 +6,7 @@
 
 {\Large
 
-\title{Minimum Cover Removal Project [[[ Title Here ]]]}
+\title{Minimum Cover Removal Project}
 \author{Aaron Jacobson}
 \date{March 2017}
 \maketitle
@@ -39,7 +39,8 @@ One way to approach this is with path traversal. An opposite way is with obstacl
 
 \textbf{Dynamic Programming Approaches:} [[[ TODO ]]]
 
-Which shape, when removed, reduces the _largest_ number of contiguous _free_ spaces; i.e., removing it _connects_ free spaces? I feel like this won't work well---how to prove that.
+Which shape, when removed, reduces the 
+\emph{largest} number of contiguous \emph{free} spaces; i.e., removing it \emph{connects} free spaces? I feel like this won't work well---how to prove that.
 
 \textbf{Ordering obstacles by number of overlaps:} In a graph, this is the number of multi-labeled vertices.
 
@@ -61,7 +62,7 @@ For any two vertices in the planar graph, what is the minimum number of obstacle
 
 \textbf{Number of unique MCR's}
 
-\textbf{Each node is valued by the total cover of its neighborhood:} $f: \mathbb{N} = v \rarrow |\bigcup_{u \in Adj(v)} C(u) |$
+\textbf{Each node is valued by the total cover of its neighborhood:} $f: \mathbb{N} = v \to |\bigcup_{u \in Adj(v)} C(u) |$
 
 \textbf{Repeat Entry Penalization:} If a subsequent entry into obstacle $O$ is penalized with 1, then the problem is in P, since we'll just be finding a path through the fewest obstacles. (Q: How is this affected by re-entry within overlaps?) What about slowly lowering the penalty by $\varepsilon$ for repeat entries? What's a good amount to reduce by? This boils down to path augmentation in the middle, which is interesting.
 
@@ -82,17 +83,18 @@ Proof: A conversion from pairwise intersection in the plane to a partition in an
 
 \section{Todo}
 
-~ import SVG's
+- import SVG's
+X label polygons with colors, add'l info?
+X label polygons within the display, using obj.representativepoint
 
 Shape intersection to new shapes
     - how will this work exactly?
     Idea 1. Overlay the shapes one by one on the artboard: add each shape to the graph as it's entered; problem: this will cetainly create convex shapes that I need to check intersection on.
     Idea 2. Add all shapes as outlines; create new segments from each intersection; add all created shapes to the graph then label them by the original shapes
     - check for a good algorithm for shape intersection
+    - shapely prepared.prep
     
 graph library
-
-develop the MCR library
 
 add tolerance for point comparisons
 
@@ -101,12 +103,10 @@ shape adjacency to (labeled) graph - partition of the plane
 
 SVG to shapes
 a. resize to [1, 1]
-b. display as translucent
-b.1. When ordering obstacles by property x, can we color them to show the order?
+√. display as translucent
+b.1. When ordering obstacles by property x in some algorithm, can we color them to show the order?
 
 overlay graph onto shapes
-
-display shapes
 
 develop the optimal algorithm from Hauser
 
