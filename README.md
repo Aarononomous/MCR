@@ -24,6 +24,44 @@ I've found it easiest to deal with the dependencies by setting up a separate con
 
 This is under heavy development. Please don't let that dissuade you from sending suggestions or requests.
 
+The Jupyter notebook within this module is used for testing. If you change the code in the Python files, don't forget to `mcr.reload()`!
+
+### TODO
+
+1. move library to new folder and files
+
+2. update GitHub
+
+    * add readme
+
+3. split MCR into files
+
+4. remove space in labels
+
+5. clip field to [0,1]
+
+6. add nodes for empty spaces
+
+7. add graph functions (as stubs)to MCR
+
+8. display graphs over the image
+
+9. implement basic graph-handling
+
+10. import shape colors from SVG's
+
+11. overlap colors?
+
+12. graph library
+
+13.add tolerance for point comparisons
+
+14. shape adjacency to (labeled) graph - partition of the plane
+    * special case where $s$ and $g$ are in the same partition
+
+15. When ordering obstacles by property x in some algorithm, can we color them to show the order?
+
+
 ## Author
 
 * [Aaron Jacobson](http://aaron-jacobson.com)
