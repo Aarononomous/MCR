@@ -28,8 +28,6 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 ### TODO
 
-1. refactor something fierce
-
 1. clip field to [0,1]
 
 1. add nodes for empty spaces

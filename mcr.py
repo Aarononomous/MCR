@@ -2,13 +2,14 @@ from math import *
 import shapely as sh
 from shapely.geometry import *
 from shapely.affinity import *
+from shapely.prepared import prep
 import graphviz as gv
 import random as rand
 import matplotlib.pyplot as plt
 import re
 
 
-class mcr:
+class MCR:
 
     """
     Minimum Cover Removal. Contains a number of helper methods for
@@ -18,7 +19,7 @@ class mcr:
 
     # We display obstacles by default as light gray with visible overlapping
     # The start and goal points are red
-    shape_opts = {'alpha': 0.25, 'edgecolor': 'black', 'facecolor': 'gray'}
+    shape_opts = {'alpha': 0.15, 'edgecolor': 'black', 'facecolor': 'gray'}
     point_opts = {'color': 'red'}
 
     def __init__(self, svg=None):
@@ -30,14 +31,14 @@ class mcr:
         self.graph = []
         self.start = (0.15, 0.05)
         self.goal = (0.95, 0.95)
-        # Shapes are labeled--if not explicitly, then with this
-        self.__label = 0
+        self._label = 1  # Shapes are labeled either explicitly or using this
+        self._current = True  # False if overlaps need to be recalculated
 
-        # self.field = plt.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
+        self.field = plt.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
 
         if svg:  # initialize from svg file
             try:
-                obstacles = mcr.__parse_SVG(svg)
+                obstacles = MCR.__parse_SVG(svg)
                 for o in obstacles:
                     self.add_obstacle(o)
             except:
@@ -46,65 +47,14 @@ class mcr:
 
     def add_obstacle(self, shape):
         """
-        Adds new obstacles to the field. They'll be added to self.obstacles
-        and self.overlapped_obstacles.
+        Adds new labeled obstacles to the field.
         """
         if not hasattr(shape, 'label'):
-            new_label = str(self.__label)
-            shape.label = new_label
-            self.__label += 1
-        else:
-            new_label = shape.label
+            shape.label = str(self._label)
+            self._label += 1
 
         self.obstacles.append(shape)
-
-        # for every shape that is added, it may intersect with any other
-        overlaps = [
-            o_o for o_o in self.overlapped_obstacles if o_o.intersects(shape)]
-
-        if len(overlaps) == 0:  # quick escape
-            self.overlapped_obstacles.append(shape)
-            return
-
-        for o_o in overlaps:
-            # first remove, then re-add piece by piece
-            self.overlapped_obstacles.remove(o_o)
-            unoverlapped_part = o_o - shape
-            overlapped_part = o_o & shape
-
-            # we don't care about Points, Lines, etc.
-            if unoverlapped_part.type == 'Polygon':
-                unoverlapped_part.label = o_o.label
-                self.overlapped_obstacles.append(unoverlapped_part)
-            elif unoverlapped_part.type in ['MultiPolygon', 'GeometryCollection']:
-                for p in unoverlapped_part:
-                    if p.type == 'Polygon':
-                        p.label = o_o.label
-                        self.overlapped_obstacles.append(p)
-
-            # otherwise the new piece is wholly within unoverlapped_part
-            if overlapped_part.type == 'Polygon':
-                overlapped_part.label = o_o.label + ',' + new_label
-                self.overlapped_obstacles.append(overlapped_part)
-            elif overlapped_part.type in ['MultiPolygon', 'GeometryCollection']:
-                for p in overlapped_part:
-                    if p.type == 'Polygon':
-                        p.label = o_o.label + ',' + new_label
-                        self.overlapped_obstacles.append(p)
-                # otherwise the new piece is wholly within overlapped_part
-
-            # trim the shape to the unoverlapped sections
-            shape = shape - o_o
-
-        # anything that's hasn't overlapped can be added now
-        if shape.type == 'Polygon':
-            shape.label = new_label
-            self.overlapped_obstacles.append(shape)
-        elif shape.type in ['MultiPolygon', 'GeometryCollection']:
-            for p in shape:
-                if p.type == 'Polygon':
-                    p.label = new_label
-                    self.overlapped_obstacles.append(p)
+        self._current = False
 
     def remove_obstacle(self, label):
         """
@@ -113,35 +63,90 @@ class mcr:
         """
         # N.B.: numbering starts at 1
         self.obstacles = self.obstacles[:label-1] + self.obstacles[label:]
+        self._current = False
 
-        self.overlapped_obstacles = filter(lambda x:
-                                           x.label.find(str(label) != -1),
-                                           self.overlapped_obstacles)
-        # TODO: change the graph
+    def construct_overlaps(self):
+        """
+        Refreshes the overlapped_obstacles list
+        """
+        overlapped_obstacles = []
 
-    def show_bare_obstacles(self):
+        # for every shape that is added, it may intersect with any other
+        for shape in self.obstacles:
+            label = shape.label
+            prepped = prep(shape) # speed up testing
+            overlaps = [
+                o_o for o_o in overlapped_obstacles if prepped.intersects(o_o)]
+
+            for o_o in overlaps:
+                # first remove, then re-add piece by piece
+                overlapped_obstacles.remove(o_o)
+                unoverlapped = o_o - shape
+                overlapped = o_o & shape
+
+                # we don't care about Points, Lines, etc.
+                if unoverlapped.type == 'Polygon':
+                    unoverlapped.label = o_o.label
+                    overlapped_obstacles.append(unoverlapped)
+                elif unoverlapped.type in ['MultiPolygon', 'GeometryCollection']:
+                    for p in unoverlapped:
+                        if p.type == 'Polygon':
+                            p.label = o_o.label
+                            overlapped_obstacles.append(p)
+
+                # otherwise the new piece is wholly within unoverlapped
+                if overlapped.type == 'Polygon':
+                    overlapped.label = o_o.label + ',' + label
+                    overlapped_obstacles.append(overlapped)
+                elif overlapped.type in ['MultiPolygon', 'GeometryCollection']:
+                    for p in overlapped:
+                        if p.type == 'Polygon':
+                            p.label = o_o.label + ',' + label
+                            overlapped_obstacles.append(p)
+                    # otherwise the new piece is wholly within overlapped
+
+                # trim the shape to the unoverlapped sections
+                shape = shape - o_o
+
+            # anything that's hasn't overlapped can be added now
+            if shape.type == 'Polygon':
+                shape.label = label
+                overlapped_obstacles.append(shape)
+            elif shape.type in ['MultiPolygon', 'GeometryCollection']:
+                for p in shape:
+                    if p.type == 'Polygon':
+                        p.label = label
+                        overlapped_obstacles.append(p)
+
+        self.overlapped_obstacles = overlapped_obstacles
+        self._current = True
+
+    def show_bare_obstacles(self, labels=False):
         """
         Outputs the original obstacles, without highlighting intersections
         """
-        mcr.__plot_shapes(self.obstacles)
-        mcr.__plot_points([self.start, self.goal])
+        MCR.__plot_shapes(self.obstacles, labels)
+        MCR.__plot_points([self.start, self.goal])
         plt.axis([0, 1, 0, 1])
         plt.show()
 
-    def show_obstacles(self, recreate=True):
+    def show_obstacles(self, labels=False):
         """
-        Outputs the obstacles, includin intersections
+        Outputs the obstacles, including intersections
         """
+        if not self._current:
+            self.construct_overlaps()
+
         plt.axis([0, 1, 0, 1])
-        mcr.__plot_shapes(self.overlapped_obstacles)
-        mcr.__plot_points([self.start, self.goal])
+        MCR.__plot_shapes(self.overlapped_obstacles, labels)
+        MCR.__plot_points([self.start, self.goal])
         plt.show()
 
-    def __plot_shapes(shapes):
+    def __plot_shapes(shapes, labels):
         # TODO: change points param into a graph?
         # add obstacles
         for s in shapes:
-            opts = mcr.shape_opts.copy()
+            opts = MCR.shape_opts.copy()
             if hasattr(s, 'facecolor'):
                 opts['facecolor'] = s.facecolor
             if hasattr(s, 'edgecolor'):
@@ -149,20 +154,26 @@ class mcr:
             poly = plt.Polygon(s.exterior.coords, **opts)
             plt.gca().add_patch(poly)
 
-            if hasattr(s, 'label'):
+            if labels and hasattr(s, 'label'):
                 r_p = s.representative_point()
                 plt.text(r_p.x, r_p.y, s.label,
                          horizontalalignment='center',
                          verticalalignment='center')
-            if __debug__:
-                print(s.label + ": " + str(s.area))
+            # if __debug__:
+            #     print(s.label + ": " + str(s.area))
 
     def __plot_points(points):
-        # add start and goal
         xs = [x for x, _ in points]
         ys = [y for _, y in points]
+        plt.scatter(xs, ys, **MCR.point_opts)
 
-        plt.scatter(xs, ys, **mcr.point_opts)
+    def intersections_of(self, label):
+        """
+        Returns a list of the other obstacles which intersect this one
+        """
+        prepped = prep(self.obstacles[label - 1])
+        return [o_o for o_o in self.overlapped_obstacles if prepped.intersects(o_o)]
+
 
     def create_graph(self):
         """
@@ -248,7 +259,8 @@ class mcr:
 
                     elif t.startswith('scale'):
                         vals = re.findall('\((.+)\)', t)[0]
-                        scale_factors = [float(x) for x in re.split('\s+,?\s*', vals)]
+                        scale_factors = [float(x)
+                                         for x in re.split('\s+,?\s*', vals)]
                         # convert 1-arg shorthand to full 2-arg version
                         if len(scale_factors) == 1:
                             scale_factors[1] = scale_factors[0]
@@ -298,11 +310,11 @@ class mcr:
         return scaled_shapes
 
 
-def random_mcr(obstacles=10, scale_factor=0.25):
+def random_MCR(obstacles=10, scale_factor=0.25):
     """
     Creates an MCR with random polygonal obstacles
     """
-    mcr = mcr()
+    mcr = MCR()
     pts = poisson_2d(obstacles)
     new_obs = []
 
@@ -320,6 +332,7 @@ def random_mcr(obstacles=10, scale_factor=0.25):
     for obstacle in new_obs:
         mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0, 0)))
 
+    print('Done!')
     return mcr
 
 
