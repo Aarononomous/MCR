@@ -6,6 +6,8 @@ import graphviz as gv
 import random as rand
 import matplotlib.pyplot as plt
 import re
+import networkx as nx
+from itertools import combinations
 
 
 class MCR:
@@ -142,7 +144,7 @@ class MCR:
 
     def show_obstacles(self, recreate=True):
         '''
-        Outputs the square
+        Outputs the square, yes?
         '''
         # add start and goal
         plt.scatter(*zip(self.start, self.goal), color='red')
@@ -170,11 +172,72 @@ class MCR:
 
     def create_graph(self):
         '''
-        Create the intersection graph. This should be done anytime an object is
+        Create the intersection graph thingy. This should be done anytime an object is
         added or removed, and whenever the start/goal locations change.
         Note that this is called by default every time show_obstacles() is run.
         '''
-        pass
+        #gather centroids for vertices
+        centroids = {}
+        
+        for o in self.overlapped_obstacles:
+            centroids[o.label] = (o.centroid.x, o.centroid.y)
+            
+        centroids['start'] = self.start
+        centroids['goal'] = self.goal
+        
+        #create graph
+        G = nx.Graph()
+        
+        G.add_nodes_from(centroids.keys())
+        
+        #save node attributes position and labels
+        for n, p in centroids.items():
+            G.node[n]['pos'] = p
+            G.node[n]['label'] = n
+            
+        pos = nx.get_node_attributes(G, 'pos')
+        labels = nx.get_node_attributes(G, 'label')
+        
+        #determine edges between obstacle nodes and intersection nodes
+        #note: assuming no edges exist between intersections and intersections (?)
+        edges = []
+        for x, y in combinations(enumerate(self.overlapped_obstacles),2):
+            label = x[1].label + y[1].label
+            if x[1].intersects(y[1]) and label.count(",") >= 1: 
+                edges.append((x[1].label, y[1].label))
+                        
+        #note: assuming no edges exist between intersection nodes and white space (?)
+        #note: insert useful thing here plz
+        whitespace_edges = self.get_whitespace_edges()
+        
+        G.add_edges_from(edges)
+        G.add_edges_from(whitespace_edges)
+        
+        nx.draw(G, pos)
+        plt.show()
+        
+        return G
+        
+    def get_whitespace_edges(self):
+        '''
+        Ideally this will be a smarter method. What I would like 
+        is whitespace polygons that I can run the same snippet of code as is
+        in create_graph
+        '''
+        end_edges = []
+        #whitespace_edges = []
+        #relevant_obstacles = whitespace_obstacles + obstacles
+        #for x, y in combinations(enumerate(relevant_obstacles),2):
+            #label = x[1].label + y[1].label
+            #if x[1].intersects(y[1]) and label.count(",") >= 1: 
+                #whitespace_edges.append((x[1].label, y[1].label))
+                
+        #doing something dumb in the meantime
+        for o in self.obstacles:
+            end_edges.append(('start', o.label))
+            end_edges.append(('goal', o.label))
+        
+        return end_edges
 
     def show_graph(self):
         '''
