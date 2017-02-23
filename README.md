@@ -28,10 +28,6 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 ### TODO
 
-1. split MCR into files
-
-2. remove space in labels
-
 1. clip field to [0,1]
 
 1. add nodes for empty spaces
@@ -48,7 +44,7 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 1. graph library
 
-1.add tolerance for point comparisons
+1. add tolerance for point comparisons
 
 1. shape adjacency to (labeled) graph - partition of the plane
     * special case where $s$ and $g$ are in the same partition
