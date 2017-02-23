@@ -181,13 +181,35 @@ class MCR:
         added or removed, and whenever the start/goal locations change.
         Note that this is called by default every time show_obstacles() is run.
         """
-        pass
+        # add background field to overlapped_obstacles
+        field = Polygon([(0,0), (1,0), (1,1), (0,1)])
+        for o in f.obstacles:
+            field -= o
+        sections = f.overlapped_obstacles + field
+
+        g = Graph()
+        for section in sections:
+            g.add_vertex(section.label, section.representative_point)
+            adjacencies = [x for x in sections if section.touches(x)]
+            for adj in adjacencies:
+                g.add_edge(section.label, adj.label)
+        return g
 
     def show_graph(self):
         """
         Outputs the square
         """
-        gv.Source(self.graph)
+        if not self._current:
+            self.construct_overlaps()
+
+        g = self.create_graph()
+        MCR.__plot_points(g.vertices.values())
+        for v in g.adj:
+            for w in g.adj[v]:
+                    if (v <= w):
+                        line = plt.Line2D(g.vertices[v], g.vertices[w])
+                        plt.gca().add_line(line)
+        plt.show()
 
     def svg(self):
         """
