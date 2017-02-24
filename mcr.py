@@ -23,6 +23,7 @@ class MCR:
     # The start and goal points are red
     shape_opts = {'alpha': 0.15, 'edgecolor': 'black', 'facecolor': 'gray'}
     point_opts = {'color': 'red'}
+    nx_opts    = {'node_size': 2000, 'node_color':'lightgray'}
 
     def __init__(self, svg=None):
         """
@@ -247,24 +248,60 @@ class MCR:
         return end_edges
 
     def create_graph_aaj(self):
-        """
-        Create the intersection graph. This should be done anytime an object is
+        '''
+        Create the intersection graph thingy. This should be done anytime an object is
         added or removed, and whenever the start/goal locations change.
-        Note that this is called by default every time show_obstacles() is run.
-        """
-        # add background field to overlapped_obstacles
-        field = Polygon([(0,0), (1,0), (1,1), (0,1)])
-        for o in f.obstacles:
-            field -= o
-        sections = f.overlapped_obstacles + field
+        '''
+        sections = self.overlapped_obstacles
 
-        g = Graph()
+        # label and append whitespace to polygons in sections
+        field = Polygon([(0,0), (1,0), (1,1), (0,1)])
+        for o in self.obstacles:
+            field -= o
+
+        if field.type == 'Polygon':
+            field.label = ''
+            sections.append(field)
+        else:
+            for f in field:
+                f.label = ''
+                sections.append(f)
+
+        #create graph
+        G = nx.Graph()
+        pos = {}
+        labels = {}
+
         for section in sections:
-            g.add_vertex(section.label, section.representative_point)
-            adjacencies = [x for x in sections if section.touches(x)]
+            wkt = section.wkt # Polygons aren't hashable -- but their well-known texts are
+            G.add_node(wkt)
+            pt = section.representative_point()
+            pos[wkt] = (pt.x, pt.y)
+            labels[wkt] = section.label
+            # Use the DE-9IM relationship: http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
+            adjacencies = [x for x in sections if section.relate(x)[4] == '1']
             for adj in adjacencies:
-                g.add_edge(section.label, adj.label)
-        return g
+                G.add_edge(wkt, adj.wkt)
+
+        # Add start and goal
+        G.add_node('start')
+        pos['start'] = self.start; labels['start'] = 'start'
+        G.add_node('goal')
+        pos['goal'] = self.goal; labels['goal'] = 'goal'
+        s = Point(self.start)
+        g = Point(self.goal)
+        for section in sections:
+            if section.contains(s):
+                G.add_edge(wkt, 'start')
+            if section.contains(g):
+                G.add_edge(wkt, 'goal')
+
+        nx.draw(G, pos)
+        
+        MCR.__plot_shapes(self.overlapped_obstacles, labels=False)
+        plt.show()
+        
+        return G
 
     def show_graph(self):
         """

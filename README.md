@@ -28,11 +28,13 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 ### TODO
 
-1. clip field to [0,1]
+1. create graphs
 
-1. add nodes for empty spaces
+1. label the nodes in create_graphs_aaj()
 
-1. add graph functions (as stubs)to MCR
+1. nodes in the graph can't be labels; they must be the polygons, and are labeled by the labels!
+
+1. add nx_args
 
 1. display graphs over the image
 

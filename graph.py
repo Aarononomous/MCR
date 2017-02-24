@@ -40,13 +40,16 @@ class Graph:
         self.adj[v].discard(u)
 
     def to_graphviz(self):
-        out = 'graph G {\n'
+        """
+        Returns a graphviz object
+        """
+        source = 'graph G {\n'
         for v in self.vertices:
             if not self.adj.get(v):
-                out += ' "{}";\n'.format(v)
+                source += ' "{}";\n'.format(v)
             else:
                 for w in self.adj[v]:
                     if (v <= w):
-                        out += ' "{}" -- "{}";\n'.format(v, w)
-        out += '}'
-        return out
+                        source += ' "{}" -- "{}";\n'.format(v, w)
+        source += '}'
+        return gv.Source(source)
