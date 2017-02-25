@@ -20,17 +20,29 @@ I've found it easiest to deal with the dependencies by setting up a separate con
 
 4. That's it!
 
+### Usage
+
+See the Jupyter notebook [`mcr.ipynb`](mcr.ipynb) for how this is used in practice.
+
 ## Development and Contributing
 
-This is under heavy development. Please don't let that dissuade you from sending suggestions or requests.
+This is under heavy development. Please don't let that dissuade you from sending suggestions, requests, or especially pull requests.
 
-The Jupyter notebook within this module is used for testing. If you change the code in the Python files, don't forget to `mcr.reload()`!
+The Jupyter notebook within this module is used for testing. If you change the code in the Python files, don't forget to `mcr.reload()` or restart the Jupyter kernel!
+
+__N.b.__: If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *please* clear output from the cells beforehand. This can be done by __Cell > All Output > Clear__ or __Kernel > Restart and Clear Output__ in the Jupyter menubar.
 
 ### TODO
 
 1. create graphs
 
-1. label the nodes in create_graphs_aaj()
+1. label the nodes in `create_graphs_aaj()` -- optional parameter
+
+1. `create_graphs_aaj()` is going over the edges
+
+1. remove `plt.show()` from all of the display methods. Instead, all of these methods, and the graph display methods, as well, should only show the graph explicitly. This is so that we can overlay multiple graphs, etc. on top of the overlapped image
+
+1. resize and re-color shapes and graphs
 
 1. nodes in the graph can't be labels; they must be the polygons, and are labeled by the labels!
 
@@ -38,13 +50,7 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 1. display graphs over the image
 
-1. implement basic graph-handling
-
-1. import shape colors from SVG's
-
 1. overlap colors?
-
-1. graph library
 
 1. add tolerance for point comparisons
 
@@ -53,6 +59,9 @@ The Jupyter notebook within this module is used for testing. If you change the c
 
 1. When ordering obstacles by property x in some algorithm, can we color them to show the order?
 
+### Nice-to-haves
+
+1. import shape colors from SVG's?
 
 ## Author
 
