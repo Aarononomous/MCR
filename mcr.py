@@ -21,9 +21,11 @@ class MCR:
 
     # We display obstacles by default as light gray with visible overlapping
     # The start and goal points are red
-    shape_opts = {'alpha': 0.15, 'edgecolor': 'black', 'facecolor': 'gray'}
+    shape_opts = {
+        'alpha': 0.15, 'edgecolor': '#336699', 'facecolor': '#77ccff'}
     point_opts = {'color': 'red'}
-    nx_opts    = {'node_size': 2000, 'node_color':'lightgray'}
+    nx_opts = {'node_size': 33, 'node_color': '#FF2233',
+               'width': 0.6667, 'edge_color': '#FF2233'}
 
     def __init__(self, svg=None):
         """
@@ -37,7 +39,7 @@ class MCR:
         self._label = 1  # Shapes are labeled either explicitly or using this
         self._current = True  # False if overlaps need to be recalculated
 
-        self.field = plt.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
+        self.field = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
 
         if svg:  # initialize from svg file
             try:
@@ -77,7 +79,9 @@ class MCR:
         # for every shape that is added, it may intersect with any other
         for shape in self.obstacles:
             label = shape.label
-            prepped = prep(shape) # speed up testing
+            # trim to field bounds
+            shape = shape & self.field
+            prepped = prep(shape)  # speed up testing
             overlaps = [
                 o_o for o_o in overlapped_obstacles if prepped.intersects(o_o)]
 
@@ -124,26 +128,22 @@ class MCR:
         self.overlapped_obstacles = overlapped_obstacles
         self._current = True
 
-    def show_bare_obstacles(self, labels=False):
+    def plot_bare_obstacles(self, labels=False):
         """
         Outputs the original obstacles, without highlighting intersections
         """
         MCR.__plot_shapes(self.obstacles, labels)
         MCR.__plot_points([self.start, self.goal])
-        plt.axis([0, 1, 0, 1])
-        plt.show()
 
-    def show_obstacles(self, labels=False):
+    def plot_obstacles(self, labels=False):
         """
         Outputs the obstacles, including intersections
         """
         if not self._current:
             self.construct_overlaps()
 
-        plt.axis([0, 1, 0, 1])
         MCR.__plot_shapes(self.overlapped_obstacles, labels)
         MCR.__plot_points([self.start, self.goal])
-        plt.show()
 
     def __plot_shapes(shapes, labels):
         # TODO: change points param into a graph?
@@ -177,85 +177,18 @@ class MCR:
         prepped = prep(self.obstacles[label - 1])
         return [o_o for o_o in self.overlapped_obstacles if prepped.intersects(o_o)]
 
-
-    def create_graph(self):
+    def create_graph(self, labels=False):
         '''
-        Create the intersection graph thingy. This should be done anytime an object is
-        added or removed, and whenever the start/goal locations change.
-        Note that this is called by default every time show_obstacles() is run.
-        '''
-        #gather centroids for vertices
-        centroids = {}
-        
-        for o in self.overlapped_obstacles:
-            centroids[o.label] = (o.centroid.x, o.centroid.y)
-            
-        centroids['start'] = self.start
-        centroids['goal'] = self.goal
-        
-        #create graph
-        G = nx.Graph()
-        
-        G.add_nodes_from(centroids.keys())
-        
-        #save node attributes position and labels
-        for n, p in centroids.items():
-            G.node[n]['pos'] = p
-            G.node[n]['label'] = n
-            
-        pos = nx.get_node_attributes(G, 'pos')
-        labels = nx.get_node_attributes(G, 'label')
-        
-        #determine edges between obstacle nodes and intersection nodes
-        #note: assuming no edges exist between intersections and intersections (?)
-        edges = []
-        for x, y in combinations(enumerate(self.overlapped_obstacles),2):
-            label = x[1].label + y[1].label
-            if x[1].intersects(y[1]) and label.count(",") >= 1: 
-                edges.append((x[1].label, y[1].label))
-                        
-        #note: assuming no edges exist between intersection nodes and white space (?)
-        #note: insert useful thing here plz
-        whitespace_edges = self.get_whitespace_edges()
-        
-        G.add_edges_from(edges)
-        G.add_edges_from(whitespace_edges)
-        
-        nx.draw(G, pos)
-        plt.show()
-        
-        return G
-        
-    def get_whitespace_edges(self):
-        '''
-        Ideally this will be a smarter method. What I would like 
-        is whitespace polygons that I can run the same snippet of code as is
-        in create_graph
-        '''
-        end_edges = []
-        #whitespace_edges = []
-        #relevant_obstacles = whitespace_obstacles + obstacles
-        #for x, y in combinations(enumerate(relevant_obstacles),2):
-            #label = x[1].label + y[1].label
-            #if x[1].intersects(y[1]) and label.count(",") >= 1: 
-                #whitespace_edges.append((x[1].label, y[1].label))
-                
-        #doing something dumb in the meantime
-        for o in self.obstacles:
-            end_edges.append(('start', o.label))
-            end_edges.append(('goal', o.label))
-        
-        return end_edges
-
-    def create_graph_aaj(self):
-        '''
-        Create the intersection graph thingy. This should be done anytime an object is
+        Create the intersection graph. This should be done anytime an object is
         added or removed, and whenever the start/goal locations change.
         '''
-        sections = self.overlapped_obstacles
+        if not self._current:
+            self.construct_overlaps()
+
+        sections = self.overlapped_obstacles[:]
 
         # label and append whitespace to polygons in sections
-        field = Polygon([(0,0), (1,0), (1,1), (0,1)])
+        field = Polygon(self.field)
         for o in self.obstacles:
             field -= o
 
@@ -267,40 +200,58 @@ class MCR:
                 f.label = ''
                 sections.append(f)
 
-        #create graph
+        # create graph
         G = nx.Graph()
         pos = {}
-        labels = {}
+        node_labels = {}
 
         for section in sections:
-            wkt = section.wkt # Polygons aren't hashable -- but their well-known texts are
+            # Polygons aren't hashable -- but their well-known texts are
+            wkt = section.wkt
             G.add_node(wkt)
             pt = section.representative_point()
             pos[wkt] = (pt.x, pt.y)
-            labels[wkt] = section.label
-            # Use the DE-9IM relationship: http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
+            node_labels[wkt] = section.label
+            # Use the DE-9IM relationship:
+            # http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
             adjacencies = [x for x in sections if section.relate(x)[4] == '1']
             for adj in adjacencies:
                 G.add_edge(wkt, adj.wkt)
 
         # Add start and goal
         G.add_node('start')
-        pos['start'] = self.start; labels['start'] = 'start'
+        pos['start'] = self.start
+        node_labels['start'] = 'start'
         G.add_node('goal')
-        pos['goal'] = self.goal; labels['goal'] = 'goal'
-        s = Point(self.start)
-        g = Point(self.goal)
-        for section in sections:
-            if section.contains(s):
-                G.add_edge(wkt, 'start')
-            if section.contains(g):
-                G.add_edge(wkt, 'goal')
+        pos['goal'] = self.goal
+        node_labels['goal'] = 'goal'
 
-        nx.draw(G, pos)
-        
-        MCR.__plot_shapes(self.overlapped_obstacles, labels=False)
+        for section in sections:
+            if section.contains(Point(self.start)):
+                G.add_edge('start', section.wkt)
+            if section.contains(Point(self.goal)):
+                G.add_edge('goal', section.wkt)
+
+        self.plot_obstacles()
+
+        if labels:
+            nx.draw_networkx(G, pos, labels=node_labels, **MCR.nx_opts)
+        else:
+            nx.draw_networkx(G, pos, with_labels=False, **MCR.nx_opts)
+
+        # Set up plotting
+        plt.axis([0, 1, 0, 1])
+        plt.tick_params(
+            axis='both',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            bottom='off',      # ticks along the bottom edge are off
+            top='off',         # ticks along the top edge are off
+            left='off',
+            right='off',
+            labelbottom='off',
+            labelleft='off') # labels along the bottom edge are off
         plt.show()
-        
+
         return G
 
     def show_graph(self):
@@ -314,9 +265,9 @@ class MCR:
         MCR.__plot_points(g.vertices.values())
         for v in g.adj:
             for w in g.adj[v]:
-                    if (v <= w):
-                        line = plt.Line2D(g.vertices[v], g.vertices[w])
-                        plt.gca().add_line(line)
+                if (v <= w):
+                    line = plt.Line2D(g.vertices[v], g.vertices[w])
+                    plt.gca().add_line(line)
         plt.show()
 
     def svg(self):

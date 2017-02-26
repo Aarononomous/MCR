@@ -34,30 +34,20 @@ __N.b.__: If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *p
 
 ### TODO
 
-1. create graphs
+1. creating and showing the graph, obstacles, etc. should be two differnet things
 
-1. label the nodes in `create_graphs_aaj()` -- optional parameter
+1. Need a way to highlight featured obstacles, vertices, and edges
+    - label certain vertices
+    - mark certain edges
+    - highlight certain faces
+    - highlight certain obstacles
 
-1. `create_graphs_aaj()` is going over the edges
+1. When ordering obstacles by property x in some algorithm, can we color them all to show the order?
 
-1. remove `plt.show()` from all of the display methods. Instead, all of these methods, and the graph display methods, as well, should only show the graph explicitly. This is so that we can overlay multiple graphs, etc. on top of the overlapped image
-
-1. resize and re-color shapes and graphs
-
-1. nodes in the graph can't be labels; they must be the polygons, and are labeled by the labels!
-
-1. add nx_args
-
-1. display graphs over the image
-
-1. overlap colors?
+1. overlap colors of overlapped obstacles?
+    - or just show the bare_obstacles by default
 
 1. add tolerance for point comparisons
-
-1. shape adjacency to (labeled) graph - partition of the plane
-    * special case where $s$ and $g$ are in the same partition
-
-1. When ordering obstacles by property x in some algorithm, can we color them to show the order?
 
 ### Nice-to-haves
 
