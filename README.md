@@ -24,17 +24,27 @@ I've found it easiest to deal with the dependencies by setting up a separate con
 
 See the Jupyter notebook [`mcr.ipynb`](mcr.ipynb) for how this is used in practice.
 
+__NEW!:__ Displaying the graph isn't automatic anymore. See the `show()` method or the notebook for more details. Basically, all of the methods that previously displayed the field now only draw to it, and displaying the finished product (from all of the many (??) additions is up to you.) `show()` is the only method on `MCR` that actually calls `plt.show()`.
+
+__`show()`:__
+
+1. `plot_obstacles()`
+
+2. `plot_graph()`
+
+3. `setup_axes()`
+
+4. `plt.show()`
+
 ## Development and Contributing
 
 This is under heavy development. Please don't let that dissuade you from sending suggestions, requests, or especially pull requests.
 
-The Jupyter notebook within this module is used for testing. If you change the code in the Python files, don't forget to `mcr.reload()` or restart the Jupyter kernel!
+The Jupyter notebook within this module is used for testing. If you change the code in the Python files, don't forget to `importtools.reload(mcr)` or restart the Jupyter kernel!
 
-__N.b.__: If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *please* clear output from the cells beforehand. This can be done by __Cell > All Output > Clear__ or __Kernel > Restart and Clear Output__ in the Jupyter menubar.
+__N.b.:__ If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *please* clear output from the cells beforehand. This can be done by __Cell > All Output > Clear__ or __Kernel > Restart and Clear Output__ in the Jupyter menubar.
 
 ### TODO
-
-1. creating and showing the graph, obstacles, etc. should be two differnet things
 
 1. Need a way to highlight featured obstacles, vertices, and edges
     - label certain vertices
@@ -42,10 +52,10 @@ __N.b.__: If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *p
     - highlight certain faces
     - highlight certain obstacles
 
-1. When ordering obstacles by property x in some algorithm, can we color them all to show the order?
+1. From a subgraph, need to pass along the labels and positions associated with the nodes
+    - if the subgraph has edges w/o nodes, still need the labels and locations of the induced nodes
 
-1. overlap colors of overlapped obstacles?
-    - or just show the bare_obstacles by default
+1. When ordering obstacles by property x in some algorithm, can we color them all to show the order?
 
 1. add tolerance for point comparisons
 
@@ -53,7 +63,7 @@ __N.b.__: If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *p
 
 1. import shape colors from SVG's?
 
-## Author
+## Authors
 
 * [Aaron Jacobson](http://aaron-jacobson.com)
 
