@@ -27,7 +27,6 @@ class MCR:
     nx_opts = {'node_size': 33, 'node_color': '#FF2233',
                'width': 0.6667, 'edge_color': '#FF2233'}
 
-
     def __init__(self, svg=None):
         """
         Create an empty square to add shapes to.
@@ -35,8 +34,6 @@ class MCR:
         self.obstacles = []
         self.overlapped_obstacles = []
         self.graph = nx.Graph()
-        self.graph_labels = {}  # node labels
-        self.graph_pos = {}  # node positions
         self.start = Point(0.15, 0.05)
         self.goal = Point(0.95, 0.95)
         self._label = 1  # Shapes are labeled either explicitly or using this
@@ -53,7 +50,6 @@ class MCR:
                 print('Couldn\'t load all shapes in ', svg)
                 raise ValueError
 
-
     def add_obstacle(self, shape):
         """
         Adds new labeled obstacles to the field.
@@ -65,7 +61,6 @@ class MCR:
         self.obstacles.append(shape)
         self._current = False
 
-
     def remove_obstacle(self, label):
         """
         Removes the obstacle labeled 'label'.
@@ -74,7 +69,6 @@ class MCR:
         # N.B.: numbering starts at 1
         self.obstacles = self.obstacles[:label-1] + self.obstacles[label:]
         self._current = False
-
 
     def construct_overlaps(self):
         """
@@ -101,7 +95,8 @@ class MCR:
                 if unoverlapped.type == 'Polygon':
                     unoverlapped.label = o_o.label
                     overlapped_obstacles.append(unoverlapped)
-                elif unoverlapped.type in ['MultiPolygon', 'GeometryCollection']:
+                elif unoverlapped.type in ['MultiPolygon',
+                                           'GeometryCollection']:
                     for p in unoverlapped:
                         if p.type == 'Polygon':
                             p.label = o_o.label
@@ -111,7 +106,8 @@ class MCR:
                 if overlapped.type == 'Polygon':
                     overlapped.label = o_o.label + ',' + label
                     overlapped_obstacles.append(overlapped)
-                elif overlapped.type in ['MultiPolygon', 'GeometryCollection']:
+                elif overlapped.type in ['MultiPolygon',
+                                         'GeometryCollection']:
                     for p in overlapped:
                         if p.type == 'Polygon':
                             p.label = o_o.label + ',' + label
@@ -134,14 +130,12 @@ class MCR:
         self.overlapped_obstacles = overlapped_obstacles
         self._current = True
 
-
     def plot_obstacles(self, labels=False):
         """
         Outputs the original obstacles, without highlighting intersections
         """
         MCR.plot_shapes(self.obstacles, labels)
         MCR.plot_points([self.start, self.goal])
-
 
     def plot_overlapped_obstacles(self, labels=False):
         """
@@ -153,7 +147,6 @@ class MCR:
         MCR.plot_shapes(self.overlapped_obstacles, labels)
         MCR.plot_points([self.start, self.goal])
 
-
     @staticmethod
     def plot_points(points):
         """
@@ -163,7 +156,6 @@ class MCR:
         ys = [pt.y for pt in points]
         plt.scatter(xs, ys, **MCR.point_opts)
 
-
     @staticmethod
     def plot_linestrings(linestrings):
         """
@@ -171,8 +163,7 @@ class MCR:
         """
         for linestring in linestrings:
             for line in zip(linestring.coords, linestring.coords[1:]):
-                plt.plot(*zip(*line)) # I know...
-
+                plt.plot(*zip(*line))  # I know...
 
     @staticmethod
     def plot_shapes(shapes, labels=False):
@@ -195,7 +186,6 @@ class MCR:
                 plt.text(r_p.x, r_p.y, s.label,
                          horizontalalignment='center',
                          verticalalignment='center')
-
 
     def intersections_of(self, label):
         """
@@ -232,16 +222,16 @@ class MCR:
 
          # refresh current graph
         self.graph.clear()
-        self.node_labels = {}
-        self.node_pos = {}
+        labels = {}
+        pos = {}
 
         for section in sections:
             # Polygons aren't hashable -- but their well-known texts are
             wkt = section.wkt
             self.graph.add_node(wkt)
             pt = section.representative_point()
-            self.node_pos[wkt] = (pt.x, pt.y)
-            self.node_labels[wkt] = section.label
+            pos[wkt] = (pt.x, pt.y)
+            labels[wkt] = section.label
             # Do these overlap in a line(s) (1-D)? Use the DE-9IM relationship:
             # http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
             adjacencies = [x for x in sections if section.relate(x)[4] == '1']
@@ -250,18 +240,21 @@ class MCR:
 
         # Add start and goal
         self.graph.add_node(self.start.wkt)
-        self.node_pos[self.start.wkt] = (self.start.x, self.start.y)
-        self.node_labels[self.start.wkt] = 'start'
+        pos[self.start.wkt] = (self.start.x, self.start.y)
+        labels[self.start.wkt] = 'start'
 
         self.graph.add_node(self.goal.wkt)
-        self.node_pos[self.goal.wkt] = (self.goal.x, self.goal.y)
-        self.node_labels[self.goal.wkt] = 'goal'
+        pos[self.goal.wkt] = (self.goal.x, self.goal.y)
+        labels[self.goal.wkt] = 'goal'
 
         for section in sections:
             if section.contains(self.start):
                 self.graph.add_edge(self.start.wkt, section.wkt)
             if section.contains(self.goal):
                 self.graph.add_edge(self.goal.wkt, section.wkt)
+
+        nx.set_node_attributes(self.graph, 'pos', pos)
+        nx.set_node_attributes(self.graph, 'label', labels)
 
     def plot_graph(self, labels=False):
         """
@@ -271,17 +264,19 @@ class MCR:
             self.construct_overlaps()
             self.create_graph()
 
+        pos = nx.get_node_attributes(self.graph, 'pos')
         nx.draw_networkx(self.graph,
-                         self.node_pos,
+                         pos,
                          with_labels=False,
                          **MCR.nx_opts)
 
         if labels:  # offset labels below nodes
             label_pos = {node: (x + 0.025, y - 0.025)
-                         for node, (x, y) in self.node_pos.items()}
+                         for node, (x, y) in pos.items()}
             nx.draw_networkx_labels(self.graph,
                                     label_pos,
-                                    labels=self.node_labels,
+                                    labels=nx.get_node_attributes(
+                                        self.graph, 'label'),
                                     **MCR.nx_opts)
 
     def setup_axes(self, **tick_params):
@@ -291,13 +286,13 @@ class MCR:
         if tick_params:
             params = tick_params
         else:
-            params = {'axis': 'both', # changes apply to the x-axis
-                      'which': 'both', # major and minor ticks are affected
+            params = {'axis': 'both',  # changes apply to the x-axis
+                      'which': 'both',  # major and minor ticks are affected
                       # ticks along the bottom edge are off
-                      'top': 'off', # ticks along the top edge are off
-                      'bottom': 'off', # ditto
-                      'left': 'off', # ditto
-                      'right': 'off', # ditto
+                      'top': 'off',  # ticks along the top edge are off
+                      'bottom': 'off',  # ditto
+                      'left': 'off',  # ditto
+                      'right': 'off',  # ditto
                       'labelbottom': 'off',
                       'labelleft': 'off'}
         plt.axis([0, 1, 0, 1])
