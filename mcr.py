@@ -36,7 +36,7 @@ class MCR:
         self.graph = nx.Graph()
         self.start = Point(0.15, 0.05)
         self.goal = Point(0.95, 0.95)
-        self._label = 1  # Shapes are labeled either explicitly or using this
+        self._obs_count = 1  # Shapes are labeled either explicitly or using this
         self._current = True  # False if overlaps need to be recalculated
 
         self.field = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
@@ -54,9 +54,9 @@ class MCR:
         """
         Adds new labeled obstacles to the field.
         """
-        if not hasattr(shape, 'label'):
-            shape.label = str(self._label)
-            self._label += 1
+        if not hasattr(shape, 'cover'):
+            shape.cover = set([self._obs_count])
+            self._obs_count += 1
 
         self.obstacles.append(shape)
         self._current = False
@@ -78,7 +78,7 @@ class MCR:
 
         # for every shape that is added, it may intersect with any other
         for shape in self.obstacles:
-            label = shape.label
+            cover = shape.cover
             # trim to field bounds
             shape = shape & self.field
             prepped = prep(shape)  # speed up testing
@@ -93,24 +93,24 @@ class MCR:
 
                 # we don't care about Points, Lines, etc.
                 if unoverlapped.type == 'Polygon':
-                    unoverlapped.label = o_o.label
+                    unoverlapped.cover = o_o.cover
                     overlapped_obstacles.append(unoverlapped)
                 elif unoverlapped.type in ['MultiPolygon',
                                            'GeometryCollection']:
                     for p in unoverlapped:
                         if p.type == 'Polygon':
-                            p.label = o_o.label
+                            p.cover = o_o.cover
                             overlapped_obstacles.append(p)
 
                 # otherwise the new piece is wholly within unoverlapped
                 if overlapped.type == 'Polygon':
-                    overlapped.label = o_o.label + ',' + label
+                    overlapped.cover = o_o.cover | cover
                     overlapped_obstacles.append(overlapped)
                 elif overlapped.type in ['MultiPolygon',
                                          'GeometryCollection']:
                     for p in overlapped:
                         if p.type == 'Polygon':
-                            p.label = o_o.label + ',' + label
+                            p.cover = o_o.cover | cover
                             overlapped_obstacles.append(p)
                     # otherwise the new piece is wholly within overlapped
 
@@ -119,12 +119,12 @@ class MCR:
 
             # anything that's hasn't overlapped can be added now
             if shape.type == 'Polygon':
-                shape.label = label
+                shape.cover = cover
                 overlapped_obstacles.append(shape)
             elif shape.type in ['MultiPolygon', 'GeometryCollection']:
                 for p in shape:
                     if p.type == 'Polygon':
-                        p.label = label
+                        p.cover = cover
                         overlapped_obstacles.append(p)
 
         self.overlapped_obstacles = overlapped_obstacles
@@ -181,9 +181,9 @@ class MCR:
             poly = plt.Polygon(s.exterior.coords, **opts)
             plt.gca().add_patch(poly)
 
-            if labels and hasattr(s, 'label'):
+            if labels and hasattr(s, 'cover'):
                 r_p = s.representative_point()
-                plt.text(r_p.x, r_p.y, s.label,
+                plt.text(r_p.x, r_p.y, ','.join(map(str,s.cover)),
                          horizontalalignment='center',
                          verticalalignment='center')
 
@@ -197,7 +197,7 @@ class MCR:
         prepped = prep(self.obstacles[label - 1])
         return [o_o for o_o in self.obstacles if prepped.intersects(o_o)]
 
-    def create_graph(self, labels=False):
+    def create_graph(self):
         '''
         Create the intersection graph. This should be done anytime an object is
         added or removed, and whenever the start/goal locations change.
@@ -208,22 +208,23 @@ class MCR:
         sections = self.overlapped_obstacles[:]
 
         # label and append whitespace to polygons in sections
-        field = Polygon(self.field)
+        field = Polygon(self.field) # create a copy
         for o in self.obstacles:
             field -= o
 
         if field.type == 'Polygon':
-            field.label = ''
+            field.cover = set()
             sections.append(field)
         else:
             for f in field:
-                f.label = ''
+                f.cover = set()
                 sections.append(f)
 
          # refresh current graph
         self.graph.clear()
-        labels = {}
         pos = {}
+        covers = {}
+        labels = {}
 
         for section in sections:
             # Polygons aren't hashable -- but their well-known texts are
@@ -231,7 +232,9 @@ class MCR:
             self.graph.add_node(wkt)
             pt = section.representative_point()
             pos[wkt] = (pt.x, pt.y)
-            labels[wkt] = section.label
+            covers[wkt] = section.cover
+            labels[wkt] = ','.join(map(str, section.cover))
+
             # Do these overlap in a line(s) (1-D)? Use the DE-9IM relationship:
             # http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
             adjacencies = [x for x in sections if section.relate(x)[4] == '1']
@@ -241,10 +244,12 @@ class MCR:
         # Add start and goal
         self.graph.add_node(self.start.wkt)
         pos[self.start.wkt] = (self.start.x, self.start.y)
+        covers[self.start.wkt] = set()
         labels[self.start.wkt] = 'start'
 
         self.graph.add_node(self.goal.wkt)
         pos[self.goal.wkt] = (self.goal.x, self.goal.y)
+        covers[self.goal.wkt] = set()
         labels[self.goal.wkt] = 'goal'
 
         for section in sections:
@@ -254,6 +259,7 @@ class MCR:
                 self.graph.add_edge(self.goal.wkt, section.wkt)
 
         nx.set_node_attributes(self.graph, 'pos', pos)
+        nx.set_node_attributes(self.graph, 'cover', covers)
         nx.set_node_attributes(self.graph, 'label', labels)
 
     def plot_graph(self, labels=False):
