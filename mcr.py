@@ -241,7 +241,8 @@ class MCR:
 
             # Do these overlap in a line(s) (1-D)? Use the DE-9IM relationship:
             # http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
-            adjacencies = [x for x in sections if section.relate(x)[4] == '1']
+            adjacencies = [x for x in sections if section is not x
+                           and section.relate(x)[4] == '1']
             for adj in adjacencies:
                 self.graph.add_edge(wkt, adj.wkt)
 
