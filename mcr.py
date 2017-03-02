@@ -36,8 +36,10 @@ class MCR:
         self.graph = nx.Graph()
         self.start = Point(0.15, 0.05)
         self.goal = Point(0.95, 0.95)
-        self._obs_count = 1  # Shapes are labeled either explicitly or using this
-        self._current = True  # False if overlaps need to be recalculated
+        # Shapes are labeled either explicitly or using this
+        self._obs_count = 1
+        self._current = False  # False if overlaps need to be recalculated
+        self._current_graph = False  # False if graph need to be recalculated
 
         self.field = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
 
@@ -183,7 +185,7 @@ class MCR:
 
             if labels and hasattr(s, 'cover'):
                 r_p = s.representative_point()
-                plt.text(r_p.x, r_p.y, ','.join(map(str,s.cover)),
+                plt.text(r_p.x, r_p.y, ','.join(map(str, s.cover)),
                          horizontalalignment='center',
                          verticalalignment='center')
 
@@ -208,7 +210,7 @@ class MCR:
         sections = self.overlapped_obstacles[:]
 
         # label and append whitespace to polygons in sections
-        field = Polygon(self.field) # create a copy
+        field = Polygon(self.field)  # create a copy
         for o in self.obstacles:
             field -= o
 
@@ -262,12 +264,16 @@ class MCR:
         nx.set_node_attributes(self.graph, 'cover', covers)
         nx.set_node_attributes(self.graph, 'label', labels)
 
+        self._current_graph = True
+
     def plot_graph(self, labels=False):
         """
         Outputs the square
         """
         if not self._current:
             self.construct_overlaps()
+
+        if not self._current_graph:
             self.create_graph()
 
         pos = nx.get_node_attributes(self.graph, 'pos')
