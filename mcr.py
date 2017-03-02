@@ -62,6 +62,7 @@ class MCR:
 
         self.obstacles.append(shape)
         self._current = False
+        self._current_graph = False
 
     def remove_obstacle(self, label):
         """
@@ -71,6 +72,7 @@ class MCR:
         # N.B.: numbering starts at 1
         self.obstacles = self.obstacles[:label-1] + self.obstacles[label:]
         self._current = False
+        self._current_graph = False
 
     def construct_overlaps(self):
         """
