@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+    <defs>
+        <style>.cls-1{isolation:isolate;}.cls-2{fill:#f15a24;}.cls-2,.cls-3{opacity:0.33;mix-blend-mode:soft-light;}.cls-3{fill:#2e3192;}</style>
+    </defs>
+    <title>Artboard 2</title>
+    <g class="cls-1">
+        <g id="Layer_1" data-name="Layer 1">
+            <rect class="cls-2" x="0" y="433" width="1000" height="300"/>
+            <rect class="cls-2" x="0" y="433" width="1000" height="300"/>
+            <polygon class="cls-3" points="225 234 85 234 65 1000 245 1000 225 234"/>
+            <polygon class="cls-3" points="685 234 545 234 525 1000 705 1000 685 234"/>
+            <polygon class="cls-2" points="475 0 295 0 315 766 455 766 475 0"/>
+            <polygon class="cls-2" points="935 0 755 0 775 766 915 766 935 0"/>
+            <circle class="cls-2" cx="385" cy="894" r="75"/>
+            <circle class="cls-2" cx="845" cy="894" r="75"/>
+            <circle class="cls-3" cx="155" cy="113" r="75"/>
+            <circle class="cls-3" cx="615" cy="113" r="75"/>
+        </g>
+    </g>
+</svg>

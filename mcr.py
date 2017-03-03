@@ -34,8 +34,8 @@ class MCR:
         self.obstacles = []
         self.overlapped_obstacles = []
         self.graph = nx.Graph()
-        self.start = Point(0.15, 0.05)
-        self.goal = Point(0.95, 0.95)
+        self.start = Point(0.01, 0.01)
+        self.goal = Point(0.99, 0.99)
         # Shapes are labeled either explicitly or using this
         self._obs_count = 1
         self._current = False  # False if overlaps need to be recalculated
@@ -416,6 +416,22 @@ class MCR:
                         rect = skew(rect, ys=float(vals), origin=(0, 0))
 
             shapes.append(rect)
+
+        # Circles
+        circles = re.findall('<circle.*?\/>', svg)
+        for c in circles:
+            cx_ = re.findall('cx="([-\d.]+)"', c)
+            cx = float(cx_[0]) if cx_ else 0.0
+
+            cy_ = re.findall('cy="([-\d.]+)"', c)
+            cy = float(cy_[0]) if cy_ else 0.0
+
+            r_  = re.findall('r="([-\d.]+)"', c)
+            r = float(r_[0]) if r_ else 0.0
+
+            circle = Point(cx, cy).buffer(r)
+            shapes.append(circle)
+
 
         # Polygons
         polygons = re.findall('<polygon.*?\/>', svg)
