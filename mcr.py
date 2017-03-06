@@ -74,7 +74,7 @@ class MCR:
                 for o in obstacles:
                     self.add_obstacle(o)
             except:
-                print('Couldn\'t load shapes from ', svg)
+                print('Couldn\'t load shapes from {}'.format(svg))
                 raise ValueError
 
     def add_obstacle(self, shape):
@@ -484,20 +484,20 @@ def random_MCR(obstacles=10, scale_factor=0.25):
     """
     mcr = MCR()
     pts = poisson_2d(obstacles)  # a list of random (x,y) points
-    obstacles = []
+    random_obstacles = []
 
     for _ in range(obstacles):
         shape = scale(random_shape(), scale_factor, scale_factor)
         x_min, y_min, _, _ = shape.bounds
         t_x, t_y = pts.pop()
-        obstacles.append(translate(shape, t_x - x_min, t_y - y_min))
+        random_obstacles.append(translate(shape, t_x - x_min, t_y - y_min))
 
     # rescale again, to fit all shapes into the unit field
-    bounds = [o.bounds for o in obstacles]
+    bounds = [o.bounds for o in random_obstacles]
     max_x = max([b[2] for b in bounds])
     max_y = max([b[3] for b in bounds])
 
-    for obstacle in obstacles:
+    for obstacle in random_obstacles:
         mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0,0)))
 
     return mcr
