@@ -30,8 +30,8 @@ class MCR:
                   'edgecolor': '#336699',
                   'facecolor': '#77ccff'}
 
-    # The start and goal points are red
-    point_opts = {'color': '#FF2233'}
+    # The start and goal points are the same as the shape
+    point_opts = {'color': '#336699'}
 
     # Nodes and edges in the graph are the same red, and small and narrow
     # enough not to distract
@@ -39,6 +39,12 @@ class MCR:
                'node_color': '#FF2233',
                'width': 0.6667,
                'edge_color': '#FF2233'}
+
+    # Featured graphs are displayed a little more prominently
+    nx_featured_opts = {'node_size': 33,
+                        'node_color': '#000000',
+                        'width': 0.75,
+                        'edge_color': '#000000'}
 
     # Axes options
     tick_params = {'axis': 'both',  # changes apply to both axes
@@ -58,8 +64,9 @@ class MCR:
         # Public members
         self.obstacles = []  # a list of the Polygon obstacles
         self.overlapped_obstacles = []  # all overlappings; also Polygons
-        self.field = Polygon([(0,0), (0,1), (1,1), (1,0)])
+        self.field = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
         self.graph = nx.Graph()
+        self.size = 0
         self.start = Point(0.01, 0.01)
         self.goal = Point(0.99, 0.99)
 
@@ -89,6 +96,7 @@ class MCR:
             self._obs_count += 1
 
         self.obstacles.append(shape)
+        self.size += 1
         self._current = False
         self._current_graph = False
 
@@ -100,6 +108,7 @@ class MCR:
         # N.B.: numbering starts at 1, and we assume that all obstacles are
         # labeled with a number
         self.obstacles = self.obstacles[:label-1] + self.obstacles[label:]
+        self.size -= 1
         self._current = False
         self._current_graph = False
 
@@ -262,14 +271,50 @@ class MCR:
 
         self._current_graph = True
 
+    def shortest_covered_path(self, v, u, cover=set()):
+        """
+        Finds one of possibly many paths from v to u in which the cover of 
+        every node is a subset of cover
+        """
+        if not self._current_graph:
+            self.create_graph()
+
+        # remove all nodes not in the cover
+        induced = self.graph.copy()
+        for n in self.graph.node:
+            if self.graph.node[n]['cover'] < cover:
+                continue
+            else:
+                induced.remove_node(n)
+
+        nodes = nx.shortest_path(induced, source=v, target=u)
+        return self.graph.subgraph(nodes)
+
+    def shortest_covered_paths(self, v, u, cover=set()):
+        """
+        Finds one of possibly many paths from v to u in which the cover of 
+        every node is a subset of cover
+        """
+        if not self._current_graph:
+            self.create_graph()
+
+        # remove all nodes not in the cover
+        induced = self.graph.copy()
+        for n in self.graph.node:
+            if self.graph.node[n]['cover'] < cover:
+                continue
+            else:
+                induced.remove_node(n)
+
+        all_paths = nx.all_shortest_paths(induced, source=v, target=u)
+        all_nodes = [node for path in all_paths for node in path]
+        return self.graph.subgraph(all_nodes)
+
     def plot_graph(self, labels=False):
         """
         Plots the field. Note that none of these "plot_..." methods call
         plt.show(). That's done only after everything's been added to plt.
         """
-        if not self._current:
-            self.construct_overlaps()
-
         if not self._current_graph:
             self.create_graph()
 
@@ -353,6 +398,17 @@ class MCR:
                          verticalalignment='center')
 
     @staticmethod
+    def plot_subgraph(subgraph, **opts):
+        """
+        very simply plots the subgraph in plt. Use plt.show() to display this
+        properly.
+        """
+        opts = opts if len(opts) else MCR.nx_featured_opts
+
+        pos = nx.get_node_attributes(subgraph, 'pos')
+        nx.draw_networkx(subgraph, pos, with_labels=False, **opts)
+
+    @staticmethod
     def __parse_SVG(svg_file):
         """
         Reads in and parses an SVG file. Returns a list of Polygons resized to
@@ -421,19 +477,19 @@ class MCR:
                         scales = [float(x) for x in re.split('\s+,?\s*', vals)]
                         if len(scales) == 1:  # expand 1-arg shorthand notation
                             scales[1] = scales[0]
-                        rect = scale(rect, *scales, origin=(0,0))
+                        rect = scale(rect, *scales, origin=(0, 0))
 
                     elif t.startswith('rotate'):
                         rot = re.findall('\((.+)\)', t)[0]
-                        rect = rotate(rect, float(rot), origin=(0,0))
+                        rect = rotate(rect, float(rot), origin=(0, 0))
 
                     elif t.startswith('skewX'):
                         skew_x = re.findall('\((.+)\)', t)[0]
-                        rect = skew(rect, xs=float(skew_x), origin=(0,0))
+                        rect = skew(rect, xs=float(skew_x), origin=(0, 0))
 
                     elif t.startswith('skewY'):
                         skew_y = re.findall('\((.+?)\)', t)[0]
-                        rect = skew(rect, ys=float(skew_y), origin=(0,0))
+                        rect = skew(rect, ys=float(skew_y), origin=(0, 0))
 
             shapes.append(rect)
 
@@ -470,7 +526,7 @@ class MCR:
             shape = translate(scale(shape,
                                     xfact=1 / vb_w,
                                     yfact=-1 / vb_h,
-                                    origin=(0,0)),
+                                    origin=(0, 0)),
                               0, 1)
             scaled_shapes.append(shape)
 
@@ -498,7 +554,7 @@ def random_MCR(obstacles=10, scale_factor=0.25):
     max_y = max([b[3] for b in bounds])
 
     for obstacle in random_obstacles:
-        mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0,0)))
+        mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0, 0)))
 
     return mcr
 
@@ -541,7 +597,7 @@ def approx_ngon(n, variance=0.25):  # TODO: magic number
     length 1. It's guaranteed that the polygon will be convex. No other
     guarantees, though.
     """
-    ngon = [(0,0), (1,0)]  # the polygon
+    ngon = [(0, 0), (1, 0)]  # the polygon
     Σ_α = 0  # the total angle
 
     # while the newest point is on the left-hand side of ngon[0] - ngon[1] and
