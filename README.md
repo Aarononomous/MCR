@@ -28,13 +28,13 @@ __NEW!:__ Displaying the graph isn't automatic anymore. See the `show()` method 
 
 __`show()`:__
 
-1. `plot_obstacles()`
+1. `self.plot_obstacles()`
 
-2. `plot_graph()`
+1. `self.plot_graph()`
 
-3. `setup_axes()`
+1. `MCR.setup_axes()`
 
-4. `plt.show()`
+1. `plt.show()`
 
 ## Development and Contributing
 
@@ -46,7 +46,7 @@ __N.b.:__ If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *p
 
 ### TODO
 
-1. Need a way to highlight featured obstacles, vertices, and edges
+1. Need a way to easily highlight featured obstacles, vertices, and edges
     - label certain vertices
     - mark certain edges
     - highlight certain faces
@@ -54,6 +54,7 @@ __N.b.:__ If you're submitting a change to `mcr.ipynb`, the Jupyter notebook, *p
 
 1. From a subgraph, need to pass along the labels and positions associated with the nodes
     - if the subgraph has edges w/o nodes, still need the labels and locations of the induced nodes
+    - I think this is done for us, I just need to show it
 
 1. When ordering obstacles by property x in some algorithm, can we color them all to show the order?
 

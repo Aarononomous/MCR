@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+    <defs>
+        <style>.cls-1{isolation:isolate;}.cls-2{fill:#9e005d;}.cls-2,.cls-3{opacity:0.5;mix-blend-mode:soft-light;}.cls-3{fill:#ff1d25;}</style>
+    </defs>
+    <title>Artboard 2</title>
+    <g class="cls-1">
+        <g id="Layer_1" data-name="Layer 1">
+            <polygon class="cls-2" points="152 0 242 900 284 900 212 0 152 0"/>
+            <polygon class="cls-2" points="293 0 347.422 900 389 900 353 0 293 0"/>
+            <polygon class="cls-2" points="435 0 453 900 495 900 495 0 435 0"/>
+            <polygon class="cls-2" points="576 0 558 900 599.723 900 635.723 0 576 0"/>
+            <polygon class="cls-2" points="718 0 664 900 705 900 777 0 718 0"/>
+            <polygon class="cls-2" points="859 0 769 900 811 900 919 0 859 0"/>
+            <polygon class="cls-2" points="10 0 136 900 178 900 70 0 10 0"/>
+            <polygon class="cls-2" points="303 1000 342 1000 288 100 231 100 303 1000"/>
+            <polygon class="cls-2" points="404 1000 444 1000 426 100 368 100 404 1000"/>
+            <polygon class="cls-2" points="505 1000 545 1000 563 100 505 100 505 1000"/>
+            <polygon class="cls-2" points="607 1000 647 1000 701 100 643 100 607 1000"/>
+            <polygon class="cls-2" points="708 1000 748 1000 838 100 780 100 708 1000"/>
+            <polygon class="cls-2" points="810 1000 850 1000 976 100 918 100 810 1000"/>
+            <polygon class="cls-2" points="201 1000 241 1000 151 100 93 100 201 1000"/>
+            <rect class="cls-3" y="240" width="1000" height="170"/>
+            <rect class="cls-3" y="240" width="1000" height="170"/>
+        </g>
+    </g>
+</svg>

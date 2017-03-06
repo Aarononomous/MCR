@@ -15,33 +15,58 @@ class MCR:
 
     """
     Minimum Cover Removal. Contains a number of helper methods for
-    investigating the MCR problem as described in Erickson and LaValle 2013 and
-    Hauser 2012
+    investigating the MCR problem as described in Erickson and LaValle 2013
+    (EL13) and Hauser 2013 (H13)
+
+    EL13: https://www.semanticscholar.org/paper/A-Simple-but-NP-Hard-Motion-Planning-Problem-Erickson-LaValle/0a9a3a6249eea0cf31646a1c97c822c0213381b7
+    H13: https://pdfs.semanticscholar.org/153e/a4fb187bd0dbda27a51979ff8f09c478bf59.pdf
     """
 
-    # We display obstacles by default as light gray with visible overlapping
+    # Styling defaults for drawing obstacles and graphs. These can be
+    # overriden by setting myMCR.nx_opts, e.g., to your preferred style.
+
+    # Obstacles are drawn in light blue, 15% opacity to show overlapping
+    shape_opts = {'alpha': 0.15,
+                  'edgecolor': '#336699',
+                  'facecolor': '#77ccff'}
+
     # The start and goal points are red
-    shape_opts = {
-        'alpha': 0.15, 'edgecolor': '#336699', 'facecolor': '#77ccff'}
-    point_opts = {'color': 'red'}
-    nx_opts = {'node_size': 33, 'node_color': '#FF2233',
-               'width': 0.6667, 'edge_color': '#FF2233'}
+    point_opts = {'color': '#FF2233'}
+
+    # Nodes and edges in the graph are the same red, and small and narrow
+    # enough not to distract
+    nx_opts = {'node_size': 33,
+               'node_color': '#FF2233',
+               'width': 0.6667,
+               'edge_color': '#FF2233'}
+
+    # Axes options
+    tick_params = {'axis': 'both',  # changes apply to both axes
+                   'which': 'both',  # major and minor ticks are affected
+                   'top': 'off',  # ticks along the top edge are off
+                   'bottom': 'off',  # ditto
+                   'left': 'off',  # ditto
+                   'right': 'off',  # ditto
+                   'labelbottom': 'off',  # no labels on the bottom
+                   'labelleft': 'off'}  # ditto
 
     def __init__(self, svg=None):
         """
         Create an empty square to add shapes to.
         """
-        self.obstacles = []
-        self.overlapped_obstacles = []
+
+        # Public members
+        self.obstacles = []  # a list of the Polygon obstacles
+        self.overlapped_obstacles = []  # all overlappings; also Polygons
+        self.field = Polygon([(0,0), (0,1), (1,1), (1,0)])
         self.graph = nx.Graph()
         self.start = Point(0.01, 0.01)
         self.goal = Point(0.99, 0.99)
-        # Shapes are labeled either explicitly or using this
-        self._obs_count = 1
-        self._current = False  # False if overlaps need to be recalculated
-        self._current_graph = False  # False if graph need to be recalculated
 
-        self.field = Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
+        # Private members
+        self._obs_count = 1  # For labeling shapes uniquely
+        self._current = False  # Do overlaps need to be recalculated?
+        self._current_graph = False  # Does graph need to be recalculated?
 
         if svg:  # initialize from svg file
             try:
@@ -49,7 +74,7 @@ class MCR:
                 for o in obstacles:
                     self.add_obstacle(o)
             except:
-                print('Couldn\'t load all shapes in ', svg)
+                print('Couldn\'t load shapes from ', svg)
                 raise ValueError
 
     def add_obstacle(self, shape):
@@ -57,6 +82,9 @@ class MCR:
         Adds new labeled obstacles to the field.
         """
         if not hasattr(shape, 'cover'):
+            # The "cover" of a node in the constructed graph is a set
+            # containing the label of every obstacle the node is within. We
+            # simply add this as an attribute to the shape itself.
             shape.cover = set([self._obs_count])
             self._obs_count += 1
 
@@ -69,81 +97,91 @@ class MCR:
         Removes the obstacle labeled 'label'.
         Removes the labeled vertices from the graph and contracts those edges
         """
-        # N.B.: numbering starts at 1
+        # N.B.: numbering starts at 1, and we assume that all obstacles are
+        # labeled with a number
         self.obstacles = self.obstacles[:label-1] + self.obstacles[label:]
         self._current = False
         self._current_graph = False
 
     def construct_overlaps(self):
         """
-        Refreshes the overlapped_obstacles list
+        Refreshes the overlapped_obstacles list. Each obstacle is added one at
+        a time to overlapped_obstacles. If there are any overlaps with any
+        already-present obstacles, their intersection is added. Each new shape
+        is labelled with the union of the covers from its constituent
+        obstacles.
         """
-        overlapped_obstacles = []
+        overlapped_obstacles = [self.obstacles[0]]
+        union = self.obstacles[0]  # the union of all obstacles
 
-        # for every shape that is added, it may intersect with any other
-        for shape in self.obstacles:
-            cover = shape.cover
-            # trim to field bounds
-            shape = shape & self.field
-            prepped = prep(shape)  # speed up testing
-            overlaps = [
-                o_o for o_o in overlapped_obstacles if prepped.intersects(o_o)]
+        for obstacle in self.obstacles[1:]:
+            # prepare obstacle and determine any overlaps
+            # remember the cover -- geometric operations create new polygons
+            # without them
+            cover = obstacle.cover
+            obstacle &= self.field  # trim to self.field
+            prepped = prep(obstacle)  # prepping speeds up the test
+            overlapped = [o for o in overlapped_obstacles
+                          if prepped.intersects(o)]
 
-            for o_o in overlaps:
-                # first remove, then re-add piece by piece
+            for o_o in overlapped:
+                # first remove the overlapped obstacle, then re-add, piece by
+                # overlapped piece
                 overlapped_obstacles.remove(o_o)
-                unoverlapped = o_o - shape
-                overlapped = o_o & shape
+                unoverlapped = o_o - obstacle
+                overlapped = o_o & obstacle
 
-                # we don't care about Points, Lines, etc.
-                if unoverlapped.type == 'Polygon':
+                # re-add the unoverlapped parts, but only polygons, not lines
+                if type(unoverlapped) is Polygon:
                     unoverlapped.cover = o_o.cover
                     overlapped_obstacles.append(unoverlapped)
-                elif unoverlapped.type in ['MultiPolygon',
-                                           'GeometryCollection']:
-                    for p in unoverlapped:
-                        if p.type == 'Polygon':
-                            p.cover = o_o.cover
-                            overlapped_obstacles.append(p)
+                elif type(unoverlapped) in [MultiPolygon, GeometryCollection]:
+                    for u in unoverlapped:
+                        if type(u) is Polygon:
+                            u.cover = o_o.cover
+                            overlapped_obstacles.append(u)
 
-                # otherwise the new piece is wholly within unoverlapped
-                if overlapped.type == 'Polygon':
+                # add the overlapped section(s), labeling them as covered by
+                # both obstacles
+                if type(overlapped) is Polygon:
                     overlapped.cover = o_o.cover | cover
                     overlapped_obstacles.append(overlapped)
-                elif overlapped.type in ['MultiPolygon',
-                                         'GeometryCollection']:
-                    for p in overlapped:
-                        if p.type == 'Polygon':
-                            p.cover = o_o.cover | cover
-                            overlapped_obstacles.append(p)
-                    # otherwise the new piece is wholly within overlapped
+                elif type(overlapped) in [MultiPolygon, GeometryCollection]:
+                    for o in overlapped:
+                        if type(o) is Polygon:
+                            o.cover = o_o.cover | cover
+                            overlapped_obstacles.append(o)
 
-                # trim the shape to the unoverlapped sections
-                shape = shape - o_o
+            # any part of the obstacle that's not overlapped another can be
+            # added now
+            new_obstacles = obstacle - union
 
-            # anything that's hasn't overlapped can be added now
-            if shape.type == 'Polygon':
-                shape.cover = cover
-                overlapped_obstacles.append(shape)
-            elif shape.type in ['MultiPolygon', 'GeometryCollection']:
-                for p in shape:
-                    if p.type == 'Polygon':
-                        p.cover = cover
-                        overlapped_obstacles.append(p)
+            if type(new_obstacles) == Polygon:
+                new_obstacles.cover = cover
+                overlapped_obstacles.append(new_obstacles)
+            elif type(new_obstacles) in [MultiPolygon, GeometryCollection]:
+                for n in new_obstacles:
+                    if type(n) == Polygon:
+                        n.cover = cover
+                        overlapped_obstacles.append(n)
+            union |= obstacle  # update the union to contain all obstacles
 
         self.overlapped_obstacles = overlapped_obstacles
         self._current = True
 
     def plot_obstacles(self, labels=False):
         """
-        Outputs the original obstacles, without highlighting intersections
+        Outputs the original obstacles and start and goal points, without
+        highlighting intersections.
         """
         MCR.plot_shapes(self.obstacles, labels)
         MCR.plot_points([self.start, self.goal])
 
     def plot_overlapped_obstacles(self, labels=False):
         """
-        Outputs the obstacles, including intersections
+        Outputs the overlapped obstacles and start and goal points. This
+        generally looks much "flatter" than plot_obstacles() because of the
+        lack of overlapping.
         """
         if not self._current:
             self.construct_overlaps()
@@ -151,127 +189,83 @@ class MCR:
         MCR.plot_shapes(self.overlapped_obstacles, labels)
         MCR.plot_points([self.start, self.goal])
 
-    @staticmethod
-    def plot_points(points):
-        """
-        Plots shapely Point objects
-        """
-        xs = [pt.x for pt in points]
-        ys = [pt.y for pt in points]
-        plt.scatter(xs, ys, **MCR.point_opts)
-
-    @staticmethod
-    def plot_linestrings(linestrings):
-        """
-        Plots shapely linestrings objects
-        """
-        for linestring in linestrings:
-            for line in zip(linestring.coords, linestring.coords[1:]):
-                plt.plot(*zip(*line))  # I know...
-
-    @staticmethod
-    def plot_shapes(shapes, labels=False):
-        """
-        Plots shapely Polygon objects (the exterior only)
-        """
-        # TODO: change points param into a graph?
-        # add obstacles
-        for s in shapes:
-            opts = MCR.shape_opts.copy()
-            if hasattr(s, 'facecolor'):
-                opts['facecolor'] = s.facecolor
-            if hasattr(s, 'edgecolor'):
-                opts['edgecolor'] = s.edgecolor
-            poly = plt.Polygon(s.exterior.coords, **opts)
-            plt.gca().add_patch(poly)
-
-            if labels and hasattr(s, 'cover'):
-                r_p = s.representative_point()
-                plt.text(r_p.x, r_p.y, ','.join(map(str, s.cover)),
-                         horizontalalignment='center',
-                         verticalalignment='center')
-
     def intersections_of(self, label):
         """
-        Returns a list of the other obstacles which intersect this one
+        Returns a list of any other obstacles which intersect this one
         """
-        if not self._current:
-            self.construct_overlaps()
-
         prepped = prep(self.obstacles[label - 1])
         return [o_o for o_o in self.obstacles if prepped.intersects(o_o)]
 
     def create_graph(self):
         '''
         Create the intersection graph. This should be done anytime an object is
-        added or removed, and whenever the start/goal locations change.
+        added or removed and whenever the start/goal locations change.
         '''
         if not self._current:
             self.construct_overlaps()
 
-        sections = self.overlapped_obstacles[:]
+        countries = self.overlapped_obstacles[:]  # create a copy
 
-        # label and append whitespace to polygons in sections
+        # label and append any remaining whitespace to polygons in countries
         field = Polygon(self.field)  # create a copy
         for o in self.obstacles:
             field -= o
 
-        if field.type == 'Polygon':
+        # the cover of the field is ∅
+        if type(field) == Polygon:
             field.cover = set()
-            sections.append(field)
+            countries.append(field)
         else:
             for f in field:
                 f.cover = set()
-                sections.append(f)
+                countries.append(f)
 
-         # refresh current graph
-        self.graph.clear()
-        pos = {}
-        covers = {}
-        labels = {}
+        # refresh current graph
+        G = self.graph
+        G.clear()
 
-        for section in sections:
-            # Polygons aren't hashable -- but their well-known texts are
-            wkt = section.wkt
-            self.graph.add_node(wkt)
-            pt = section.representative_point()
-            pos[wkt] = (pt.x, pt.y)
-            covers[wkt] = section.cover
-            labels[wkt] = ','.join(map(str, section.cover))
+        # Add each country as a node in the graph. Neighboring countries are
+        # connected with edges
+        for country in countries:
+            # Polygons aren't hashable -- they're mutable -- but their well-
+            # known texts are
+            wkt = country.wkt
+            G.add_node(wkt)
+            pt = country.representative_point()
+            G.node[wkt]['pos'] = (pt.x, pt.y)
+            G.node[wkt]['cover'] = country.cover
+            G.node[wkt]['label'] = ','.join(map(str, country.cover))
 
-            # Do these overlap in a line(s) (1-D)? Use the DE-9IM relationship:
-            # http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
-            adjacencies = [x for x in sections if section is not x
-                           and section.relate(x)[4] == '1']
+            # Do these overlap in a line(s) (1-D overlap)? Use the DE-9IM
+            # relationship: http://giswiki.hsr.ch/images/3/3d/9dem_springer.pdf
+            adjacencies = [x for x in countries if country is not x
+                           and country.relate(x)[4] == '1']
             for adj in adjacencies:
-                self.graph.add_edge(wkt, adj.wkt)
+                G.add_edge(wkt, adj.wkt)
 
         # Add start and goal
-        self.graph.add_node(self.start.wkt)
-        pos[self.start.wkt] = (self.start.x, self.start.y)
-        covers[self.start.wkt] = set()
-        labels[self.start.wkt] = 'start'
+        G.add_node(self.start.wkt)
+        G.node[self.start.wkt]['pos'] = (self.start.x, self.start.y)
+        G.node[self.start.wkt]['cover'] = set()
+        G.node[self.start.wkt]['label'] = 'start'
 
-        self.graph.add_node(self.goal.wkt)
-        pos[self.goal.wkt] = (self.goal.x, self.goal.y)
-        covers[self.goal.wkt] = set()
-        labels[self.goal.wkt] = 'goal'
+        G.add_node(self.goal.wkt)
+        G.node[self.goal.wkt]['pos'] = (self.goal.x, self.goal.y)
+        G.node[self.goal.wkt]['cover'] = set()
+        G.node[self.goal.wkt]['label'] = 'goal'
 
-        for section in sections:
-            if section.contains(self.start):
-                self.graph.add_edge(self.start.wkt, section.wkt)
-            if section.contains(self.goal):
-                self.graph.add_edge(self.goal.wkt, section.wkt)
-
-        nx.set_node_attributes(self.graph, 'pos', pos)
-        nx.set_node_attributes(self.graph, 'cover', covers)
-        nx.set_node_attributes(self.graph, 'label', labels)
+        for country in countries:
+            if country.contains(self.start):
+                G.add_edge(self.start.wkt, country.wkt)
+            if country.contains(self.goal):
+                G.add_edge(self.goal.wkt, country.wkt)
 
         self._current_graph = True
 
     def plot_graph(self, labels=False):
         """
-        Outputs the square
+        Plots the field. Note that none of these "plot_..." methods call
+        plt.show(). That's done only after everything's been added to plt.
         """
         if not self._current:
             self.construct_overlaps()
@@ -280,42 +274,19 @@ class MCR:
             self.create_graph()
 
         pos = nx.get_node_attributes(self.graph, 'pos')
-        nx.draw_networkx(self.graph,
-                         pos,
-                         with_labels=False,
-                         **MCR.nx_opts)
+        nx.draw_networkx(self.graph, pos, with_labels=False, **MCR.nx_opts)
 
-        if labels:  # offset labels below nodes
-            label_pos = {node: (x + 0.025, y - 0.025)
-                         for node, (x, y) in pos.items()}
-            nx.draw_networkx_labels(self.graph,
-                                    label_pos,
+        if labels:  # labels are offset below and right of nodes
+            l_p = {n: (x + 0.025, y - 0.025) for n, (x, y) in pos.items()}
+            nx.draw_networkx_labels(self.graph, l_p,
                                     labels=nx.get_node_attributes(
                                         self.graph, 'label'),
                                     **MCR.nx_opts)
 
-    def setup_axes(self, **tick_params):
-        """
-        Set up plotting axis (black outline, no tickmarks)
-        """
-        if tick_params:
-            params = tick_params
-        else:
-            params = {'axis': 'both',  # changes apply to the x-axis
-                      'which': 'both',  # major and minor ticks are affected
-                      # ticks along the bottom edge are off
-                      'top': 'off',  # ticks along the top edge are off
-                      'bottom': 'off',  # ditto
-                      'left': 'off',  # ditto
-                      'right': 'off',  # ditto
-                      'labelbottom': 'off',
-                      'labelleft': 'off'}
-        plt.axis([0, 1, 0, 1])
-        plt.tick_params(**params)  # labels along the bottom edge are off
-
     def show(self, obstacles=True, graph=True, labels=False):
         """
-        The default display method. If you want to show
+        The default display method. If you want to show a more complicated
+        situation, build your output piece by piece, then call plt.show().
         """
         if obstacles:
             self.plot_obstacles(labels=(not graph))
@@ -323,21 +294,72 @@ class MCR:
         if graph:
             self.plot_graph(labels=labels)
 
-        self.setup_axes()
+        MCR.setup_axes()
         plt.show()
 
-    def svg(self):
-        """
-        Draws an SVG
-        """
-        # TODO: I believe all I'll need is to change the output method of
-        # matplotlib, then redraw.
-        # Do I need an output file?
-        pass
+    # Static methods on MCR
 
-    # Helper methods
+    @staticmethod
+    def setup_axes(**tick_params):
+        """
+        A helper method for displaying things nicely.
+        Sets up a plotting scheme with a black outline, no labels, and no ticks
+        on the axes.
+        """
+        params = tick_params if len(tick_params) else MCR.tick_params
+        plt.tick_params(**params)
+        plt.axis([0, 1, 0, 1])  # set the axes to [0,1]
 
+    @staticmethod
+    def plot_points(points):
+        """
+        Plots shapely Points
+        """
+        xs = [pt.x for pt in points]
+        ys = [pt.y for pt in points]
+        plt.scatter(xs, ys, **MCR.point_opts)
+
+    @staticmethod
+    def plot_linestrings(linestrings):
+        """
+        Plots shapely LineStrings. A LineString is simply a list of points.
+        """
+        for linestring in linestrings:
+            for line in zip(linestring.coords, linestring.coords[1:]):
+                plt.plot(*zip(*line))  # I know...
+
+    @staticmethod
+    def plot_shapes(shapes, labels=False):
+        """
+        Plots shapely Polygons (the exterior only).
+        """
+        for s in shapes:
+            # set the styling of the object from the defaults and any
+            # overridden attributes
+            opts = MCR.shape_opts.copy()
+            if hasattr(s, 'facecolor'):
+                opts['facecolor'] = s.facecolor
+            if hasattr(s, 'edgecolor'):
+                opts['edgecolor'] = s.edgecolor
+
+            poly = plt.Polygon(s.exterior.coords, **opts)
+            plt.gca().add_patch(poly)
+
+            # label shapes
+            if labels and hasattr(s, 'cover'):
+                r_p = s.representative_point()
+                plt.text(r_p.x, r_p.y, ','.join(map(str, s.cover)),
+                         horizontalalignment='center',
+                         verticalalignment='center')
+
+    @staticmethod
     def __parse_SVG(svg_file):
+        """
+        Reads in and parses an SVG file. Returns a list of Polygons resized to
+        fit within a [0,1] - [0,1] field.
+        Note that there are tons of SVG shapes this can't handle -- also, I'm
+        parsing with regex, which can't be good.
+        """
         try:
             f = open(svg_file)
             svg = f.read()
@@ -346,12 +368,12 @@ class MCR:
             print('File {} not found'.format(svg_file))
             return
 
-        shapes = []
+        shapes = []  # parsed shapes are accumulated in this list
 
-        #  Viewbox - this will be scaled to 1, 1 eventually
+        # Viewbox
         try:
-            viewbox = [float(x)
-                       for x in re.findall('viewBox="(.*?)"', svg)[0].split()]
+            viewbox_ = re.findall('viewBox="(.*?)"', svg)[0]
+            viewbox = [float(x) for x in viewbox_.split()]
             vb_w = viewbox[2] - viewbox[0]
             vb_h = viewbox[3] - viewbox[1]
         except:
@@ -375,12 +397,12 @@ class MCR:
 
             rect = Polygon([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
 
-            # Transforms
+            # Transforms on rectangles
             transform = re.findall('transform="(.*?)"', r)
             if transform:
                 t_list = re.findall('\w+\(.+?\)', transform[0])
 
-                # reverse to accumulate transform composion
+                # reverse t_list to compose transforms
                 for t in reversed(t_list):
                     if t.startswith('matrix'):
                         vals = re.findall('\((.+)\)', t)[0]
@@ -396,24 +418,22 @@ class MCR:
 
                     elif t.startswith('scale'):
                         vals = re.findall('\((.+)\)', t)[0]
-                        scale_factors = [float(x)
-                                         for x in re.split('\s+,?\s*', vals)]
-                        # convert 1-arg shorthand to full 2-arg version
-                        if len(scale_factors) == 1:
-                            scale_factors[1] = scale_factors[0]
-                        rect = scale(rect, *scale_factors, origin=(0, 0))
+                        scales = [float(x) for x in re.split('\s+,?\s*', vals)]
+                        if len(scales) == 1:  # expand 1-arg shorthand notation
+                            scales[1] = scales[0]
+                        rect = scale(rect, *scales, origin=(0,0))
 
                     elif t.startswith('rotate'):
-                        val = re.findall('\((.+)\)', t)[0]
-                        rect = rotate(rect, float(val), origin=(0, 0))
+                        rot = re.findall('\((.+)\)', t)[0]
+                        rect = rotate(rect, float(rot), origin=(0,0))
 
                     elif t.startswith('skewX'):
-                        val = re.findall('\((.+)\)', t)[0]
-                        rect = skew(rect, xs=float(vals), origin=(0, 0))
+                        skew_x = re.findall('\((.+)\)', t)[0]
+                        rect = skew(rect, xs=float(skew_x), origin=(0,0))
 
                     elif t.startswith('skewY'):
-                        val = re.findall('\((.+?)\)', t)[0]
-                        rect = skew(rect, ys=float(vals), origin=(0, 0))
+                        skew_y = re.findall('\((.+?)\)', t)[0]
+                        rect = skew(rect, ys=float(skew_y), origin=(0,0))
 
             shapes.append(rect)
 
@@ -426,37 +446,31 @@ class MCR:
             cy_ = re.findall('cy="([-\d.]+)"', c)
             cy = float(cy_[0]) if cy_ else 0.0
 
-            r_  = re.findall('r="([-\d.]+)"', c)
+            r_ = re.findall('r="([-\d.]+)"', c)
             r = float(r_[0]) if r_ else 0.0
 
-            circle = Point(cx, cy).buffer(r)
+            circle = Point(cx, cy).buffer(r)  # buffer is a shapely idiom
             shapes.append(circle)
-
 
         # Polygons
         polygons = re.findall('<polygon.*?\/>', svg)
         for p in polygons:
-            polygon = []
             point_list = re.findall('points="(.*?)"', p)
-            points = ([float(x) for x in point_list[0].split()])
 
-            points.reverse()  # so that I can pop in x,y order
-            while points:
-                polygon.append((points.pop(), points.pop()))
+            # ignore the last point: it repeats the first
+            points = ([float(x) for x in point_list[0].split()])[:-2]
+            shapes.append(Polygon(list(zip(points[::2], points[1::2]))))
 
-            # remove the doubled last point
-            polygon = polygon[:-1]
-
-            shapes.append(Polygon(polygon))
-
-        # rescale to [1,1]
+        # rescale all parsed shapes to between [0,0] and [1,1]
+        # additionally, the SVG viewbox origin is at the top left, i.e., upside
+        # down, so scale it by -1 in the x direction and translate it back up
+        # to the regular Cartesian system
         scaled_shapes = []
         for shape in shapes:
-            # N.b.: the svg viewbox starts at the top left
             shape = translate(scale(shape,
                                     xfact=1 / vb_w,
                                     yfact=-1 / vb_h,
-                                    origin=(0, 0)),
+                                    origin=(0,0)),
                               0, 1)
             scaled_shapes.append(shape)
 
@@ -465,49 +479,48 @@ class MCR:
 
 def random_MCR(obstacles=10, scale_factor=0.25):
     """
-    Creates an MCR with random polygonal obstacles
+    Creates an MCR with random polygonal obstacles.
+    Shapes are gotten from the random_shape function
     """
     mcr = MCR()
-    pts = poisson_2d(obstacles)
-    new_obs = []
+    pts = poisson_2d(obstacles)  # a list of random (x,y) points
+    obstacles = []
 
-    for i in range(obstacles):
-        r = scale(random_shape(), scale_factor, scale_factor)
-        x_min, y_min, _, _ = r.bounds
+    for _ in range(obstacles):
+        shape = scale(random_shape(), scale_factor, scale_factor)
+        x_min, y_min, _, _ = shape.bounds
         t_x, t_y = pts.pop()
-        new_obs.append(translate(r, t_x - x_min, t_y - y_min))
+        obstacles.append(translate(shape, t_x - x_min, t_y - y_min))
 
-    # rescale again, to fit all shapes in the
-    bounds = [o.bounds for o in new_obs]
+    # rescale again, to fit all shapes into the unit field
+    bounds = [o.bounds for o in obstacles]
     max_x = max([b[2] for b in bounds])
     max_y = max([b[3] for b in bounds])
 
-    for obstacle in new_obs:
-        mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0, 0)))
+    for obstacle in obstacles:
+        mcr.add_obstacle(scale(obstacle, 1 / max_x, 1 / max_y, origin=(0,0)))
 
     return mcr
 
 
-def random_shape(max_sides=6):
+def random_shape(max_sides=7):
     """
-    Creates a random convex polygon with between 3 and ~max_sides sides all of
-    which have length ~1.
+    Creates a random convex polygon with between 3 and ~max_sides sides.
     """
-    return rotate(approx_ngon(rand.randrange(3, max_sides + 1)),
+    return rotate(approx_ngon(rand.randrange(3, max_sides)),
                   rand.uniform(0, 360),
                   origin='centroid')
 
 
 def on_left_hand(point, ray):
     """
-    Is point on the left-hand side of the directed ray ray[0] - ray[1]?
-    This includes being on the line itself.
+    Is point on or on the left-hand side of the directed ray ray_0 -> ray_1?
     """
     px, py = point
     x1, y1 = ray[0]
     x2, y2 = ray[1]
 
-    # special case for vertical lines (no slope)
+    # special case for vertical rays (no slope)
     if (x1 == x2):
         return (px < x1) == (y1 < y2)
 
@@ -525,9 +538,10 @@ def on_left_hand(point, ray):
 def approx_ngon(n, variance=0.25):  # TODO: magic number
     """
     Creates a random polygon with approximately n sides of approximately
-    length 1. It's guaranteed that the polygon will be convex.
+    length 1. It's guaranteed that the polygon will be convex. No other
+    guarantees, though.
     """
-    ngon = [(0, 0), (1, 0)]  # the polygon
+    ngon = [(0,0), (1,0)]  # the polygon
     Σ_α = 0  # the total angle
 
     # while the newest point is on the left-hand side of ngon[0] - ngon[1] and
@@ -548,7 +562,7 @@ def approx_ngon(n, variance=0.25):  # TODO: magic number
 
 def poisson_2d(k):
     """
-    Returns an array of k (x, y) tuples evenly spaced across [0, 1] x [0, 1]
+    Returns an array of k (x, y) tuples evenly spaced across [0,1] x [0,1]
     Note that there are tweaks to the distribution that make it unreliable
     as an _actual_ Poisson distribution.
     """
