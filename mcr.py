@@ -282,7 +282,7 @@ class MCR:
         # remove all nodes not in the cover
         induced = self.graph.copy()
         for n in self.graph.node:
-            if self.graph.node[n]['cover'] < cover:
+            if self.graph.node[n]['cover'] <= cover:
                 continue
             else:
                 induced.remove_node(n)
