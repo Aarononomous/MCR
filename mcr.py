@@ -310,7 +310,7 @@ class MCR:
         all_nodes = [node for path in all_paths for node in path]
         return self.graph.subgraph(all_nodes)
 
-    def plot_graph(self, labels=False):
+    def plot_graph(self, labels=False, unique_labels=False):
         """
         Plots the field. Note that none of these "plot_..." methods call
         plt.show(). That's done only after everything's been added to plt.
@@ -323,12 +323,22 @@ class MCR:
 
         if labels:  # labels are offset below and right of nodes
             l_p = {n: (x + 0.025, y - 0.025) for n, (x, y) in pos.items()}
+            graph_labels = nx.get_node_attributes(self.graph, 'label')
+            
+            if unique_labels: # duplicate labels are "subscripted"
+                subscripts = {}
+                for k, v in graph_labels.items():
+                    if v in subscripts:
+                            subscripts[v] += 1
+                    else:
+                            subscripts[v] = 1
+                    graph_labels[k] = v + '_' + str(subscripts[v])
+
             nx.draw_networkx_labels(self.graph, l_p,
-                                    labels=nx.get_node_attributes(
-                                        self.graph, 'label'),
+                                    labels=graph_labels,
                                     **MCR.nx_opts)
 
-    def show(self, obstacles=True, graph=True, labels=False):
+    def show(self, obstacles=True, graph=True, labels=False, unique_labels=False):
         """
         The default display method. If you want to show a more complicated
         situation, build your output piece by piece, then call plt.show().
@@ -337,7 +347,7 @@ class MCR:
             self.plot_obstacles(labels=(not graph))
 
         if graph:
-            self.plot_graph(labels=labels)
+            self.plot_graph(labels=labels, unique_labels=unique_labels)
 
         MCR.setup_axes()
         plt.show()
