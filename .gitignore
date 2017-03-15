@@ -7,7 +7,7 @@ __pycache__
 
 # Illustrator
 *.ai
-*.pdf
+.pdf
 
 # TeX
 *.aux
