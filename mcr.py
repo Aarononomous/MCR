@@ -14,7 +14,7 @@ from itertools import combinations
 class MCR:
 
     """
-    Minimum Cover Removal. Contains a number of helper methods for
+    Minimum Constraint Removal. Contains a number of helper methods for
     investigating the MCR problem as described in Erickson and LaValle 2013
     (EL13) and Hauser 2013 (H13)
 
@@ -338,16 +338,15 @@ class MCR:
                                     labels=graph_labels,
                                     **MCR.nx_opts)
 
-    def show(self, obstacles=True, graph=True, labels=False, unique_labels=False):
+    def show(self, obstacle_labels=False, graph=True, graph_labels=False, unique_labels=False):
         """
         The default display method. If you want to show a more complicated
         situation, build your output piece by piece, then call plt.show().
         """
-        if obstacles:
-            self.plot_obstacles(labels=(not graph))
+        self.plot_obstacles(labels=obstacle_labels)
 
         if graph:
-            self.plot_graph(labels=labels, unique_labels=unique_labels)
+            self.plot_graph(labels=graph_labels, unique_labels=unique_labels)
 
         MCR.setup_axes()
         plt.show()
@@ -413,7 +412,7 @@ class MCR:
         very simply plots the subgraph in plt. Use plt.show() to display this
         properly.
         """
-        opts = opts if len(opts) else MCR.nx_featured_opts
+        opts = {**MCR.nx_featured_opts, **opts}
 
         pos = nx.get_node_attributes(subgraph, 'pos')
         nx.draw_networkx(subgraph, pos, with_labels=False, **opts)
