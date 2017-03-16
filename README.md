@@ -1,6 +1,6 @@
 # mcr
 
-__mcr__ is a Python module for working on the Minimum Cover Removal problem ([Erickson and LaValle, 2013](https://www.semanticscholar.org/paper/A-Simple-but-NP-Hard-Motion-Planning-Problem-Erickson-LaValle/0a9a3a6249eea0cf31646a1c97c822c0213381b7)). __mcr__ contains functions for creating these from scratch or by svg import. Once created, use __mcr__ methods to create graphs from the overlaps.
+__mcr__ is a Python module for working on the Minimum Constraint Removal problem ([Erickson and LaValle, 2013](https://www.semanticscholar.org/paper/A-Simple-but-NP-Hard-Motion-Planning-Problem-Erickson-LaValle/0a9a3a6249eea0cf31646a1c97c822c0213381b7)). __mcr__ contains functions for creating these from scratch or by svg import. Once created, use __mcr__ methods to create graphs from the overlaps.
 
 ## Getting Started
 
